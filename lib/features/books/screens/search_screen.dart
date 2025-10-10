@@ -1,0 +1,634 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../../core/widgets/premium_card.dart';
+import '../../../data/providers/book_provider.dart';
+import '../../../data/models/book.dart';
+
+class SearchScreen extends StatefulWidget {
+  const SearchScreen({super.key});
+
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedDepartment = '전체';
+  String _selectedCondition = '전체';
+  RangeValues _priceRange = const RangeValues(0, 1000);
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기 검색 실행
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _performSearch();
+    });
+  }
+
+  final List<String> _departments = [
+    '전체',
+    '컴퓨터공학과',
+    '전자공학과',
+    '기계공학과',
+    '경영학과',
+    '경제학과',
+    '심리학과',
+    '국어국문학과',
+    '영어영문학과',
+  ];
+
+  final List<String> _conditions = [
+    '전체',
+    '최상',
+    '양호',
+    '보통',
+    '하급',
+  ];
+
+  /// 검색 실행
+  void _performSearch() {
+    final bookProvider = context.read<BookProvider>();
+    final query = _searchController.text.trim();
+
+    // 필터 설정
+    BookCondition? condition;
+    if (_selectedCondition != '전체') {
+      // 한글 -> enum 변환
+      switch (_selectedCondition) {
+        case '최상':
+          condition = BookCondition.excellent;
+          break;
+        case '양호':
+          condition = BookCondition.good;
+          break;
+        case '보통':
+          condition = BookCondition.fair;
+          break;
+        case '하급':
+          condition = BookCondition.poor;
+          break;
+      }
+    }
+
+    int? minPrice = _priceRange.start > 0 ? _priceRange.start.toInt() : null;
+    int? maxPrice = _priceRange.end < 1000 ? _priceRange.end.toInt() : null;
+    String? category = _selectedDepartment != '전체' ? _selectedDepartment : null;
+
+    bookProvider.setSearchFilters(
+      condition: condition,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      category: category,
+    );
+
+    bookProvider.searchBooks(query);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppStrings.search),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: '교재명, 저자 검색',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        _performSearch();
+                      },
+                    ),
+                  ),
+                  onSubmitted: (value) => _performSearch(),
+                  onChanged: (value) {
+                    // 실시간 검색 (디바운싱 필요시 추가)
+                    if (value.isEmpty) {
+                      _performSearch();
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: '학과',
+                        value: _selectedDepartment,
+                        onTap: () => _showDepartmentBottomSheet(),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: '상태',
+                        value: _selectedCondition,
+                        onTap: () => _showConditionBottomSheet(),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: '포인트',
+                        value: '${_priceRange.start.toInt()}~${_priceRange.end.toInt()}P',
+                        onTap: () => _showPriceBottomSheet(),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: _resetFilters,
+                        child: const Text('초기화'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Consumer<BookProvider>(
+              builder: (context, bookProvider, child) {
+                if (bookProvider.isSearching) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (bookProvider.errorMessage != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          bookProvider.errorMessage!,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            bookProvider.clearError();
+                            _performSearch();
+                          },
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final searchResults = bookProvider.searchResults;
+
+                if (searchResults.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '검색 결과가 없습니다',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '다른 키워드로 검색해보세요',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: searchResults.length,
+                  itemBuilder: (context, index) {
+                    final book = searchResults[index];
+                    return BookCard(
+                      title: book.title,
+                      author: book.author ?? '저자 미상',
+                      publisher: book.publisher,
+                      condition: book.condition.displayName,
+                      price: '${book.rentalPrice} P',
+                      imageUrl: book.imageUrl,
+                      department: book.subject,
+                      isHorizontal: true,
+                      onTap: () {
+                        // TODO: 책 상세 화면으로 이동
+                        // context.go('/book/${book.id}');
+                        _showBookDetailDialog(book);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 필터 초기화
+  void _resetFilters() {
+    setState(() {
+      _selectedDepartment = '전체';
+      _selectedCondition = '전체';
+      _priceRange = const RangeValues(0, 1000);
+    });
+    context.read<BookProvider>().clearSearchFilters();
+    _performSearch();
+  }
+
+  /// 책 상세 정보 다이얼로그 (임시)
+  void _showBookDetailDialog(Book book) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(book.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('저자: ${book.author ?? "미상"}'),
+            Text('출판사: ${book.publisher ?? "미상"}'),
+            Text('상태: ${book.condition.displayName}'),
+            Text('가격: ${book.rentalPrice} P'),
+            if (book.description != null) ...[
+              const SizedBox(height: 8),
+              Text('설명: ${book.description}'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('닫기'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showSnackBar('대여 요청 기능은 준비 중입니다');
+            },
+            child: const Text('대여 요청'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 스낵바 표시
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _showDepartmentBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  '학과 선택',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _departments.length,
+                  itemBuilder: (context, index) {
+                    final department = _departments[index];
+                    return ListTile(
+                      title: Text(department),
+                      trailing: _selectedDepartment == department
+                          ? const Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedDepartment = department;
+                        });
+                        Navigator.pop(context);
+                        _performSearch();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showConditionBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  '상태 선택',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...List.generate(_conditions.length, (index) {
+                final condition = _conditions[index];
+                return ListTile(
+                  title: Text(condition),
+                  trailing: _selectedCondition == condition
+                      ? const Icon(Icons.check, color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _selectedCondition = condition;
+                    });
+                    Navigator.pop(context);
+                    _performSearch();
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPriceBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '포인트 범위',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${_priceRange.start.toInt()} P'),
+                      Text('${_priceRange.end.toInt()} P'),
+                    ],
+                  ),
+                  RangeSlider(
+                    values: _priceRange,
+                    min: 0,
+                    max: 1000,
+                    divisions: 20,
+                    labels: RangeLabels(
+                      '${_priceRange.start.toInt()}P',
+                      '${_priceRange.end.toInt()}P',
+                    ),
+                    onChanged: (values) {
+                      setModalState(() {
+                        _priceRange = values;
+                      });
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _performSearch();
+                    },
+                    child: const Text('적용'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.divider),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$label: ',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchResultCard extends StatelessWidget {
+  final int index;
+
+  const _SearchResultCard({required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      onTap: () {},
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 80,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.menu_book,
+                size: 40,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '교재명 ${index + 1}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '저자명 | 출판사',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(alpha:0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '양호',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha:0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '컴퓨터공학과',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: AppColors.secondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '300 P',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '3일 전',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
