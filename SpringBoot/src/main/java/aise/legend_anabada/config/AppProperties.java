@@ -11,4 +11,5 @@ import org.springframework.stereotype.Component;
 @Setter
 public class AppProperties {
     private String base_url;
+    private String upload_dir;
 }

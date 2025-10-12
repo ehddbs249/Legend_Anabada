@@ -47,9 +47,6 @@ public class Book {
     @Column(name = "dmg_tag", length = 10)
     private String dmgTag;
 
-    @Column(name = "img_url", length = 500)
-    private String imgUrl;
-
     @ColumnDefault("now()")
     @Column(name = "registered_at", nullable = false)
     private OffsetDateTime registeredAt;

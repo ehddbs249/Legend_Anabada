@@ -1,15 +1,25 @@
 package aise.legend_anabada.service;
 
+import aise.legend_anabada.config.exception.ExpiredTokenException;
+import aise.legend_anabada.config.exception.FileUploadException;
+import aise.legend_anabada.config.exception.InvalidTokenException;
 import aise.legend_anabada.dto.request.BookRegisterRequest;
 import aise.legend_anabada.dto.response.AuthResponse;
 import aise.legend_anabada.dto.response.Response;
 import aise.legend_anabada.entity.Book;
+import aise.legend_anabada.entity.User;
 import aise.legend_anabada.repository.BookRepository;
 import aise.legend_anabada.repository.UserRepository;
+import aise.legend_anabada.util.FileUtil;
 import aise.legend_anabada.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class BookService {
@@ -17,24 +27,44 @@ public class BookService {
     private BookRepository bookRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private FileUtil fileUtil;
 
-    public AuthResponse<Void> registerBook(String token, MultipartFile image, BookRegisterRequest request) {
+    public AuthResponse<Void> registerBook(String token, List<MultipartFile> images, BookRegisterRequest request) {
         if(!JwtUtil.validateToken(token)){
-            return new AuthResponse<Void>(false, null, "로그인 필요", null);
+            throw new ExpiredTokenException("인증 만료됨");
         }
+
+        UUID uuid = UUID.randomUUID();
+
+        for (MultipartFile image : images) {
+            try {
+                if (image != null && !image.isEmpty()) {
+                    String fileName = image.getOriginalFilename();
+                    String filePath = "/" + uuid + "/" + fileName;
+                    fileUtil.save(image, filePath);
+                }
+            } catch (IOException e) {
+                throw new FileUploadException("사진 업로드 실패");
+            }
+        }
+
+        // 4️⃣ Book 엔티티 생성
+        Book book = new Book();
+        book.setId(uuid);
 
         String email = JwtUtil.getEmailFromToken(token);
+        userRepository.findByEmail(email).ifPresent(book::setUser);
+        // TODO book.setCategory();
+        book.setTitle(request.getTitle());
+        book.setAuthor(request.getAuthor());
+        book.setPublisher(request.getPublisher());
+        // TODO book.setPointPrice(request.);
+        book.setConditionGrade(request.getCondition());
 
-        try{
+        bookRepository.save(book);
 
-        } catch (Exception e) {
-            return new AuthResponse<Void>(false, JwtUtil.generateToken(email), "사진 업로드 실패", null);
-        }
-
-        Book book = new Book();
-
-
-        return new AuthResponse<Void>(true, JwtUtil.generateToken(email), request.getTitle() + "교재 등록이 완료되었습니다.", null);
+        return new AuthResponse<Void>(true, JwtUtil.generateToken(email), request.getTitle() + " 교재 등록이 완료되었습니다.", null);
     }
 
     public void registerBookAutomatically(Book book) {
