@@ -121,7 +121,7 @@ public class UserService {
         String email = request.getEmail();
         String password = request.getPassword();
 
-        Optional<User> user = userRepository.findById(email);
+        Optional<User> user = userRepository.findByEmail(email);
 
         if (user.isEmpty()) {
             throw new InvalidEmailException("이메일이 존재하지 않거나 회원가입이 필요합니다.");
