@@ -1,169 +1,150 @@
-# yolo_predict.py
-from ultralytics import YOLO
-import json
 import os
+import json
+import requests
+from ultralytics import YOLO
+from supabase import create_client, Client
 
+# -------------------------------
 # YOLO 모델 로드
-model_path = os.path.join(os.path.dirname(__file__), "yolov8n.pt")
-if not os.path.exists(model_path):
-    # best.pt가 있는지 확인
-    alt_model_path = os.path.join(os.path.dirname(__file__), "best.pt")
-    if os.path.exists(alt_model_path):
-        model_path = alt_model_path
+# -------------------------------
+def load_yolo_model():
+    base_dir = os.path.dirname(__file__)
+    model_path = os.path.join(base_dir, "yolov8n.pt")
+    if not os.path.exists(model_path):
+        alt_path = os.path.join(base_dir, "best.pt")
+        if os.path.exists(alt_path):
+            model_path = alt_path
+    try:
+        return YOLO(model_path)
+    except Exception as e:
+        print(f"⚠️ Warning: Could not load YOLO model from {model_path}: {e}")
+        return None
 
-try:
-    model = YOLO(model_path)
-except Exception as e:
-    print(f"Warning: Could not load YOLO model from {model_path}: {e}")
-    model = None
+model = load_yolo_model()
 
-# 손상 등급 매핑 (클래스 ID -> 손상 등급)
-DAMAGE_LEVELS = {
-    0: "상",  # 깨끗한 상태
-    1: "중상",  # 약간의 손상
-    2: "중하",  # 중간 손상
-    3: "하",  # 심한 손상
-}
-
-
-DEFAULT_CLASS_NAMES = [
-    "class1", "class2", "class3", "class4", "class5",
-    "class6", "class7", "class8", "class9"
+# -------------------------------
+# 클래스 및 손상 태그 정의
+# -------------------------------
+FINE_TUNED_CLASS_NAMES = [
+    "back_ripped", "back_wear", "front_folded",
+    "front_ripped", "front_wear", "side_ripped",
+    "side_wear", "stain", "wet"
 ]
 
+CLASS_TO_TAG = {
+    "back_ripped": "ripped", "front_ripped": "ripped", "side_ripped": "ripped",
+    "back_wear": "wear", "front_wear": "wear", "side_wear": "wear",
+    "front_folded": "folded", "stain": "stain", "wet": "wet"
+}
 
-def predict_damage(image_path, return_details=False):
-    """
-    이미지에서 책 손상 정도를 분석하여 dmg_tag 반환
+DAMAGE_LEVELS = ["상", "중상", "중", "중하", "하"]
 
-    Args:
-        image_path: 이미지 파일 경로
-        return_details: True면 상세 정보 반환, False면 dmg_tag만 반환
+# -------------------------------
+# Supabase 초기화
+# -------------------------------
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    Returns:
-        return_details=False: dmg_tag (string) - "상", "중상", "중하", "하"
-        return_details=True: dict with detailed information
-    """
+# -------------------------------
+# 손상 예측 함수
+# -------------------------------
+def predict_damage(image_path):
     if model is None:
-        # 모델이 없는 경우 기본값 반환
-        if return_details:
-            return {
-                "dmg_tag": "상",
-                "confidence": 0.0,
-                "detected_objects": [],
-                "error": "YOLO model not loaded"
-            }
-        return "상"
-
+        return {"damage_level": "상", "damage_tag": [], "confidence": 0.0, "detected_object_class": [], "detected_object_count": 0, "error": "YOLO model not loaded"}
     if not os.path.exists(image_path):
-        if return_details:
-            return {
-                "dmg_tag": "상",
-                "confidence": 0.0,
-                "detected_objects": [],
-                "error": f"File not found: {image_path}"
-            }
-        return "상"
+        return {"damage_level": "상", "damage_tag": [], "confidence": 0.0, "detected_object_class": [], "detected_object_count": 0, "error": f"File not found: {image_path}"}
 
     try:
-        # YOLO 예측 수행
         results = model.predict(image_path, verbose=False)
-
-        detected_damages = []
-        max_damage_level = 0  # 0: 상, 1: 중상, 2: 중하, 3: 하
+        detected_classes = []
+        detected_tags = []
+        confidences = []
+        max_score = 0
 
         for result in results:
             boxes = result.boxes
-            if boxes is None or len(boxes) == 0:
+            if not boxes:
                 continue
-
             for box in boxes:
                 cls_id = int(box.cls[0])
-                confidence = float(box.conf[0])
-                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                confidences.append(conf)
 
-                # 클래스 이름 가져오기
-                if hasattr(result, 'names') and result.names:
-                    cls_name = result.names.get(cls_id, f"class_{cls_id}")
+                cls_name = FINE_TUNED_CLASS_NAMES[cls_id] if cls_id < len(FINE_TUNED_CLASS_NAMES) else f"class_{cls_id}"
+                detected_classes.append(cls_name)
+
+                tag = CLASS_TO_TAG.get(cls_name)
+                if tag and tag not in detected_tags:
+                    detected_tags.append(tag)
+
+                # 손상 정도 매핑
+                if tag == "ripped":
+                    score = 3
+                elif tag == "wet":
+                    score = 4
+                elif tag in ["stain", "folded"]:
+                    score = 2
+                elif tag == "wear":
+                    score = 1
                 else:
-                    cls_name = DEFAULT_CLASS_NAMES[cls_id] if cls_id < len(DEFAULT_CLASS_NAMES) else f"class_{cls_id}"
+                    score = 0
+                max_score = max(max_score, score)
 
-                detected_damages.append({
-                    "class_id": cls_id,
-                    "class_name": cls_name,
-                    "confidence": confidence,
-                    "bbox": [float(x1), float(y1), float(x2), float(y2)]
-                })
+        avg_conf = round(sum(confidences) / len(confidences), 3) if confidences else 0.0
+        damage_level = DAMAGE_LEVELS[max_score] if max_score < len(DAMAGE_LEVELS) else "상"
 
-                # 손상 등급 결정 (간단한 규칙 기반)
-                # 실제 프로젝트에서는 클래스 ID와 손상 등급의 매핑을 조정해야 합니다
-                if cls_id >= 7:  # severe damage classes
-                    damage_score = 3
-                elif cls_id >= 4:  # moderate damage classes
-                    damage_score = 2
-                elif cls_id >= 1:  # minor damage classes
-                    damage_score = 1
-                else:  # clean
-                    damage_score = 0
-
-                # 최대 손상 등급 갱신
-                if damage_score > max_damage_level:
-                    max_damage_level = damage_score
-
-        # 손상이 감지되지 않으면 "상" (최상 상태)
-        dmg_tag = DAMAGE_LEVELS.get(max_damage_level, "상")
-
-        if return_details:
-            return {
-                "dmg_tag": dmg_tag,
-                "damage_level": max_damage_level,
-                "total_detected": len(detected_damages),
-                "detected_objects": detected_damages
-            }
-
-        return dmg_tag
+        return {
+            "damage_level": damage_level,
+            "damage_tag": detected_tags,
+            "confidence": avg_conf,
+            "detected_object_class": list(set(detected_classes)),
+            "detected_object_count": len(detected_classes),
+            "error": None
+        }
 
     except Exception as e:
-        print(f"Error in YOLO prediction: {str(e)}")
-        if return_details:
-            return {
-                "dmg_tag": "상",
-                "confidence": 0.0,
-                "detected_objects": [],
-                "error": str(e)
-            }
-        return "상"
+        return {"damage_level": "상", "damage_tag": [], "confidence": 0.0, "detected_object_class": [], "detected_object_count": 0, "error": str(e)}
 
+# -------------------------------
+# Supabase에 결과 저장
+# -------------------------------
+def update_book_condition(uuid: str, image_url: str):
+    """
+    1. 이미지 다운로드
+    2. YOLO 예측
+    3. book 테이블 업데이트
+    """
+    # 임시 파일로 다운로드
+    local_path = f"/tmp/{uuid}.jpg"
+    try:
+        r = requests.get(image_url)
+        r.raise_for_status()
+        with open(local_path, "wb") as f:
+            f.write(r.content)
+    except Exception as e:
+        return {"error": f"Failed to download image: {e}"}
 
-def predict_image(image_path):
+    # 예측 수행
+    result = predict_damage(local_path)
 
-    details = predict_damage(image_path, return_details=True)
+    # DB 업데이트
+    try:
+        supabase.table("book").update({
+            "condition_grade": result["damage_level"],
+            "dmg_tag": result["damage_tag"]
+        }).eq("uuid", uuid).execute()
+    except Exception as e:
+        result["error"] = f"Failed to update DB: {e}"
 
-    output = {
-        "dmg_tag": details["dmg_tag"],
-        "total_objects": details.get("total_detected", 0),
-        "objects": details.get("detected_objects", [])
-    }
+    return result
 
-    return json.dumps(output, ensure_ascii=False, indent=2)
-
-
-# 테스트용
+# -------------------------------
+# 테스트 실행
+# -------------------------------
 if __name__ == "__main__":
-    import sys
+    test_uuid = "example-uuid-1234"
+    test_image_url = "https://your-supabase-bucket-url/path/to/image.jpg"
 
-    if len(sys.argv) > 1:
-        test_image = sys.argv[1]
-    else:
-        test_image = "test.jpg"
-
-    print(f"Testing YOLO prediction with: {test_image}")
-    print("="*60)
-
-    # 상세 정보 출력
-    result_details = predict_damage(test_image, return_details=True)
-    print(json.dumps(result_details, ensure_ascii=False, indent=2))
-
-    print("\n" + "="*60)
-    print(f"Final dmg_tag: {result_details['dmg_tag']}")
-    print("="*60)
+    output = update_book_condition(test_uuid, test_image_url)
+    print(json.dumps(output, ensure_ascii=False, indent=2))
