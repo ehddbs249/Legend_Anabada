@@ -1,3 +1,9 @@
+# FastAPI 및 관련 패키지
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.1
+pydantic==2.5.0
+
 blinker==1.9.0
 certifi==2025.10.5
 charset-normalizer==3.4.3
