@@ -1,5 +1,10 @@
 package aise.legend_anabada.restController;
 
+import aise.legend_anabada.dto.request.AuthRequest;
+import aise.legend_anabada.dto.request.LoginRequest;
+import aise.legend_anabada.dto.request.RegisterRequest;
+import aise.legend_anabada.dto.response.AuthResponse;
+import aise.legend_anabada.dto.response.Response;
 import aise.legend_anabada.entity.User;
 import aise.legend_anabada.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,44 +19,40 @@ public class UserController {
 
     // 회원가입
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody User user) {
-        userService.registerUser(user);
-        return ResponseEntity.ok("회원가입 완료");
+    public ResponseEntity<Response<Void>> registerUser(@RequestBody RegisterRequest request) {
+        Response<Void> response = userService.registerUser(request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 메일 전송
+    @PostMapping("/auth")
+    public ResponseEntity<Response<Void>> authUser(@RequestBody AuthRequest request) {
+        Response<Void> response = userService.authenticateUser(request);
+        return ResponseEntity.ok(response);
     }
 
     // 학생 인증
-    @PostMapping("/authenticate")
-    public ResponseEntity<String> authenticateUser(@RequestParam String email,
-                                                   @RequestParam String password) {
-        userService.authenticateUser(email, password);
-        return ResponseEntity.ok("학생 인증 완료");
+    @PostMapping("/verify")
+    public ResponseEntity<Response<Void>> verifyUser(@RequestParam("token") String token) {
+        Response<Void> response = userService.verifyEmail(token);
+        return ResponseEntity.ok(response);
     }
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestParam String email,
-                                            @RequestParam String password) {
-        userService.loginUser(email, password);
-        return ResponseEntity.ok("로그인 성공");
+    public ResponseEntity<AuthResponse<String>> loginUser(@RequestBody LoginRequest request) {
+        AuthResponse<String> response = userService.loginUser(request);
+        return ResponseEntity.ok(response);
     }
 
     // 로그아웃
     @PostMapping("/logout")
-    public ResponseEntity<String> logoutUser() {
-        userService.logoutUser();
-        return ResponseEntity.ok("로그아웃 완료");
+    public ResponseEntity<Response<Void>> logoutUser() {
+        // 플러터에서 토큰 삭제하기
+        return ResponseEntity.ok(new Response<Void>(true, "로그아웃 완료", null));
     }
 
-    // 세션 확인
-    @GetMapping("/session-check")
-    public ResponseEntity<Boolean> sessionCheck(@RequestParam String email,
-                                                @RequestParam String password,
-                                                @RequestParam String sessionId) {
-        boolean valid = userService.sessionCheck(email, password, sessionId);
-        return ResponseEntity.ok(valid);
-    }
-
-    // 개인정보 수정
+    // TODO 개인정보 수정
     @PutMapping("/edit")
     public ResponseEntity<String> editUser(@RequestParam String email,
                                            @RequestParam String password,
@@ -61,7 +62,7 @@ public class UserController {
         return ResponseEntity.ok("사용자 정보 수정 완료");
     }
 
-    // 대여·반납·기부 내역 조회
+    // TODO 대여·반납·기부 내역 조회
     @GetMapping("/transactions")
     public ResponseEntity<String> viewTransactionHistory(@RequestParam String email,
                                                          @RequestParam String sessionId) {
@@ -69,7 +70,7 @@ public class UserController {
         return ResponseEntity.ok("거래 내역 조회 완료");
     }
 
-    // 계정 탈퇴 요청
+    // TODO 계정 탈퇴 요청
     @DeleteMapping("/delete")
     public ResponseEntity<String> requestAccountDeletion(@RequestParam String email,
                                                          @RequestParam String sessionId) {
@@ -77,7 +78,7 @@ public class UserController {
         return ResponseEntity.ok("계정 탈퇴 요청 완료");
     }
 
-    // 포인트 관리
+    // TODO 포인트 관리
     @GetMapping("/points")
     public ResponseEntity<String> managePoints(@RequestParam String email,
                                                @RequestParam String sessionId) {

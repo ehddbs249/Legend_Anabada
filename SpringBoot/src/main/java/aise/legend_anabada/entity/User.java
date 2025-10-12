@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -41,6 +42,13 @@ public class User {
 
     @Column(name = "role", nullable = false, length = 20)
     private String role;
+
+    @ColumnDefault("false")
+    @Column(name = "verify", nullable = false)
+    private Boolean verify;
+
+    @Column(name = "expiryDate")
+    private Date expiryDate;
 
     @OneToMany(mappedBy = "user")
     private Set<Book> books = new LinkedHashSet<>();
