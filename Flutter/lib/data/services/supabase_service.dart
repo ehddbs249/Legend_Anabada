@@ -204,16 +204,72 @@ class SupabaseService {
 
   /// === 데이터베이스 직접 접근 (필요한 경우) ===
 
+  /// 사용자 생성 (Supabase 테이블)
+  Future<void> createUserProfile({
+    required String userId,
+    required String email,
+    required String password,
+    required String name,
+    required String studentNumber,
+    String? department,
+    String? grade,
+    String role = 'user',
+  }) async {
+    try {
+      // 디버깅용 로그
+      print('=== createUserProfile 호출 ===');
+      print('userId: $userId');
+      print('email: $email');
+      print('password: $password');
+      print('name: $name');
+      print('studentNumber: $studentNumber');
+      print('department: $department');
+      print('grade: $grade');
+      print('role: $role');
+
+      final data = {
+        'user_id': userId,
+        'email': email,
+        'password': password,
+        'name': name,
+        'student_number': studentNumber,
+        'department': department,
+        'grade': grade,
+        'role': role,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      print('Insert data: $data');
+
+      await client.from('User').insert(data);
+    } catch (e) {
+      throw Exception('사용자 프로필 생성 실패: ${e.toString()}');
+    }
+  }
+
+  /// 사용자 정보 조회 (Supabase 테이블)
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final response = await client
+          .from('User')
+          .select()
+          .eq('user_id', userId)
+          .single();
+      return response;
+    } catch (e) {
+      throw Exception('사용자 정보 조회 실패: ${e.toString()}');
+    }
+  }
+
   /// 사용자 정보 업데이트 (Supabase 테이블)
   Future<void> updateUserProfile({
     required String userId,
     required Map<String, dynamic> updates,
   }) async {
     try {
-      await client.from('users').update({
+      await client.from('User').update({
         ...updates,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', userId);
+      }).eq('user_id', userId);
     } catch (e) {
       throw Exception('사용자 정보 업데이트 실패: ${e.toString()}');
     }
@@ -222,10 +278,9 @@ class SupabaseService {
   /// 포인트 업데이트
   Future<void> updateUserPoints(String userId, int points) async {
     try {
-      await client.from('users').update({
+      await client.from('User').update({
         'points': points,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', userId);
+      }).eq('user_id', userId);
     } catch (e) {
       throw Exception('포인트 업데이트 실패: ${e.toString()}');
     }
@@ -254,7 +309,7 @@ class SupabaseService {
   /// 연결 상태 확인
   Future<bool> checkConnection() async {
     try {
-      await client.from('users').select('id').limit(1);
+      await client.from('User').select('user_id').limit(1);
       return true;
     } catch (e) {
       return false;

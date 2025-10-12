@@ -266,7 +266,7 @@ class PremiumDropdown<T> extends StatelessWidget {
             ),
           ),
           child: DropdownButtonFormField<T>(
-            value: value,
+            initialValue: value,
             items: items,
             onChanged: enabled ? onChanged : null,
             decoration: InputDecoration(

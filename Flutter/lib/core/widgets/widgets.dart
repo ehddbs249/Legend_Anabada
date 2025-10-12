@@ -1,5 +1,6 @@
 /// 아나바다 앱의 모든 공통 위젯을 export하는 파일
 /// 깔끔한 import를 위한 배럴 파일
+library;
 
 // 기본 컴포넌트
 export 'premium_card.dart';

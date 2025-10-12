@@ -28,6 +28,7 @@ class AuthProvider with ChangeNotifier {
   bool isValidUniversityEmail(String email) {
     // 주요 대학 이메일 도메인 목록
     final universityDomains = [
+      'mokpo.ac.kr',
       'snu.ac.kr',
       'yonsei.ac.kr',
       'korea.ac.kr',
@@ -110,7 +111,19 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (authResponse.user != null) {
-        // 추가 사용자 정보 저장
+        // Supabase Database에 사용자 정보 저장
+        await _supabaseService.createUserProfile(
+          userId: authResponse.user!.id,
+          email: email,
+          password: password,
+          name: name,
+          studentNumber: studentNumber,
+          department: department,
+          grade: grade,
+          role: role,
+        );
+
+        // 사용자 정보 생성
         final user = User(
           id: authResponse.user!.id,
           email: email,
@@ -119,12 +132,8 @@ class AuthProvider with ChangeNotifier {
           department: department ?? '',
           createdAt: DateTime.now(),
           role: role,
-          verify: false, // 이메일 인증 전
-          expiryDate: DateTime.now().add(const Duration(hours: 24)), // 24시간 후 만료
+          verify: authResponse.user!.emailConfirmedAt != null, // Supabase Auth의 이메일 인증 여부
         );
-
-        // API를 통해 사용자 정보 저장
-        await _apiService.createUser(user);
 
         _currentUser = user;
         _setLoading(false);
@@ -174,9 +183,11 @@ class AuthProvider with ChangeNotifier {
   /// 현재 사용자 정보 로드
   Future<void> _loadCurrentUser(String userId) async {
     try {
-      final user = await _apiService.getUser(userId);
-      _currentUser = user;
-      notifyListeners();
+      final userData = await _supabaseService.getUserProfile(userId);
+      if (userData != null) {
+        _currentUser = User.fromJson(userData);
+        notifyListeners();
+      }
     } catch (e) {
       _setError('사용자 정보를 불러오는데 실패했습니다: ${e.toString()}');
     }
@@ -188,8 +199,12 @@ class AuthProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final user = await _apiService.updateUser(updatedUser);
-      _currentUser = user;
+      await _supabaseService.updateUserProfile(
+        userId: updatedUser.id,
+        updates: updatedUser.toJson(),
+      );
+
+      _currentUser = updatedUser;
       _setLoading(false);
       notifyListeners();
       return true;

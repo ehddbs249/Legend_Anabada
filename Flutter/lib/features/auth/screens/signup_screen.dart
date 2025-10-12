@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../app/routes/app_router.dart';
+import '../../../data/providers/auth_provider.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -23,6 +25,9 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
   bool _agreedToTerms = false;
+
+  String? _selectedDepartment;
+  String? _selectedGrade;
 
   final List<String> _departments = [
     '컴퓨터공학과',
@@ -92,7 +97,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  // value: _selectedDepartment,
+                  value: _selectedDepartment,
                   decoration: const InputDecoration(
                     labelText: '학과 *',
                     prefixIcon: Icon(Icons.school_outlined),
@@ -104,12 +109,20 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    // TODO: 백엔드 연동 시 선택된 학과 처리
+                    setState(() {
+                      _selectedDepartment = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '학과를 선택해주세요';
+                    }
+                    return null;
                   },
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  // value: _selectedGrade,
+                  value: _selectedGrade,
                   decoration: const InputDecoration(
                     labelText: '학년 *',
                     prefixIcon: Icon(Icons.grade_outlined),
@@ -121,7 +134,15 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    // TODO: 백엔드 연동 시 선택된 학년 처리
+                    setState(() {
+                      _selectedGrade = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '학년을 선택해주세요';
+                    }
+                    return null;
                   },
                 ),
                 const SizedBox(height: 32),
@@ -279,31 +300,60 @@ class _SignupScreenState extends State<SignupScreen> {
         _isLoading = true;
       });
 
-      await Future.delayed(const Duration(seconds: 2));
+      // AuthProvider를 사용하여 실제 Supabase 회원가입 수행
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+        studentNumber: _studentIdController.text.trim(),
+        department: _selectedDepartment,
+        grade: _selectedGrade,
+      );
 
       setState(() {
         _isLoading = false;
       });
 
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('회원가입 완료'),
-              content: const Text('인증 메일이 발송되었습니다.\n메일을 확인해주세요.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    context.go(AppRoutes.home);
-                  },
-                  child: const Text('확인'),
+        if (success) {
+          // 회원가입 성공
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('회원가입 완료'),
+                content: const Text(
+                  '회원가입이 완료되었습니다.\n로그인 페이지로 이동합니다.',
                 ),
-              ],
-            );
-          },
-        );
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.go(AppRoutes.login);
+                    },
+                    child: const Text('확인'),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          // 회원가입 실패 - 에러 메시지 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                authProvider.errorMessage ?? '회원가입에 실패했습니다.',
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
       }
     }
   }

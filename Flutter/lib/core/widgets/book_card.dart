@@ -312,7 +312,7 @@ class BookCardHorizontal extends StatelessWidget {
   }
 
   Widget _buildThumbnailPlaceholder() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: double.infinity,
       child: Icon(

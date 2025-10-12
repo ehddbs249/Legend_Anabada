@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/premium_button.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../app/routes/app_router.dart';
+import '../../../data/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -259,14 +261,36 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      await Future.delayed(const Duration(seconds: 2));
+      // AuthProvider를 사용하여 실제 Supabase 인증 수행
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
       setState(() {
         _isLoading = false;
       });
 
       if (mounted) {
-        context.go(AppRoutes.home);
+        if (success) {
+          // 로그인 성공 - 홈으로 이동
+          context.go(AppRoutes.home);
+        } else {
+          // 로그인 실패 - 에러 메시지 표시
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                authProvider.errorMessage ?? '로그인에 실패했습니다.',
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
       }
     }
   }
