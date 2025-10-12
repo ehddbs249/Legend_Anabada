@@ -8,12 +8,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookRegisterRequest {
+    private String category;
     private String title;
     private String author;
-    private String isbn;
     private String publisher;
-    private String originalPrice;
-    private String department;
-    private String subject;
     private String condition;
+    private String dmgTag;
 }

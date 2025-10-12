@@ -17,7 +17,7 @@ public class Category {
     @Id
     @ColumnDefault("gen_random_uuid()")
     @Column(name = "category_id", nullable = false)
-    private UUID id;
+    private int id;
 
     @Column(name = "category_name", nullable = false, length = 50)
     private String categoryName;

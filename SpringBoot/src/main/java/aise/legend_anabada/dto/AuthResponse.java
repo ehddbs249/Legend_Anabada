@@ -1,4 +1,4 @@
-package aise.legend_anabada.dto.response;
+package aise.legend_anabada.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

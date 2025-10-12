@@ -6,9 +6,11 @@ import aise.legend_anabada.config.exception.InvalidEmailException;
 import aise.legend_anabada.config.exception.InvalidPasswordException;
 import aise.legend_anabada.dto.request.AuthRequest;
 import aise.legend_anabada.dto.request.LoginRequest;
+import aise.legend_anabada.dto.request.UserEditRequest;
 import aise.legend_anabada.dto.request.UserRegisterRequest;
-import aise.legend_anabada.dto.response.AuthResponse;
-import aise.legend_anabada.dto.response.Response;
+import aise.legend_anabada.dto.AuthResponse;
+import aise.legend_anabada.dto.Response;
+import aise.legend_anabada.dto.response.LoginDTO;
 import aise.legend_anabada.entity.User;
 import aise.legend_anabada.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +24,17 @@ public class UserRestController {
     @Autowired
     private UserService userService;
 
+    // 유저 생성
+    @PostMapping("/create")
+    public ResponseEntity<Response<User>> createUser(@RequestBody UserCreateRequest request) {
+        Response<User> response = userService.createUser(request);
+        return ResponseEntity.ok(response);
+    }
+
     // 회원가입
     @PostMapping("/register")
-    public ResponseEntity<Response<Void>> registerUser(@RequestBody UserRegisterRequest request) {
-        Response<Void> response = userService.registerUser(request);
-
+    public ResponseEntity<Response<LoginDTO>> registerUser(@RequestBody UserRegisterRequest request) {
+        Response<LoginDTO> response = userService.registerUser(request);
         return ResponseEntity.ok(response);
     }
 
@@ -66,9 +74,9 @@ public class UserRestController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse<String>> loginUser(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse<LoginDTO>> loginUser(@RequestBody LoginRequest request) {
         try {
-            AuthResponse<String> response = userService.loginUser(request);
+            AuthResponse<LoginDTO> response = userService.loginUser(request);
             return ResponseEntity.ok(response);
         } catch (InvalidEmailException e) {
             return ResponseEntity.status(Status.BAD_REQUEST)
@@ -91,12 +99,15 @@ public class UserRestController {
 
     // TODO 개인정보 수정
     @PutMapping("/edit")
-    public ResponseEntity<String> editUser(@RequestParam String email,
-                                           @RequestParam String password,
-                                           @RequestParam String sessionId,
-                                           @RequestBody User updatedUser) {
-        userService.editUser(email, password, sessionId);
-        return ResponseEntity.ok("사용자 정보 수정 완료");
+    public ResponseEntity<AuthResponse<Void>> editUser(@RequestHeader String token,
+                                                       @RequestBody UserEditRequest request) {
+        try{
+            AuthResponse<Void> response = userService.editUser(token, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(Status.INTERNAL_SERVER_ERROR)
+                    .body(new AuthResponse<>(false, null, e.getMessage(), null));
+        }
     }
 
     // TODO 대여·반납·기부 내역 조회
@@ -115,11 +126,11 @@ public class UserRestController {
         return ResponseEntity.ok("계정 탈퇴 요청 완료");
     }
 
-    // TODO 포인트 관리
-    @GetMapping("/points")
-    public ResponseEntity<String> managePoints(@RequestParam String email,
-                                               @RequestParam String sessionId) {
-        userService.managePoints(email, sessionId);
-        return ResponseEntity.ok("포인트 내역 조회 완료");
+    // 포인트 관리
+    @GetMapping("/charge-points")
+    public ResponseEntity<Response<Void>> managePoints(@RequestParam("userId") String email,
+                                               @RequestBody int amount) {
+        Response<Void> response = userService.managePoints(email, amount);
+        return ResponseEntity.ok(response);
     }
 }
