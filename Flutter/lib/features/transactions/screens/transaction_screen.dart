@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/providers/transaction_provider.dart';
@@ -195,16 +194,16 @@ class _TransactionList extends StatelessWidget {
     switch (filterType) {
       case 'active':
         return allTransactions
-            .where((t) => t.status == TransactionStatus.active ||
-                         t.status == TransactionStatus.pending)
+            .where((t) => t.transStatus == 'active' ||
+                         t.transStatus == 'pending')
             .toList();
       case 'completed':
         return allTransactions
-            .where((t) => t.status == TransactionStatus.completed)
+            .where((t) => t.transStatus == 'completed')
             .toList();
       case 'cancelled':
         return allTransactions
-            .where((t) => t.status == TransactionStatus.cancelled)
+            .where((t) => t.transStatus == 'cancelled')
             .toList();
       default:
         return allTransactions;
@@ -249,9 +248,9 @@ class _TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = transaction.status == TransactionStatus.active ||
-                     transaction.status == TransactionStatus.pending;
-    final transactionColor = _getTransactionColor(transaction.status);
+    final isActive = transaction.transStatus == 'active' ||
+                     transaction.transStatus == 'pending';
+    final transactionColor = _getTransactionColor(transaction.transStatus);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -266,9 +265,9 @@ class _TransactionCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _StatusBadge(status: transaction.status),
+                  _StatusBadge(status: transaction.transStatus),
                   Text(
-                    _formatDate(transaction.createdAt),
+                    _formatDate(transaction.transDate),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -283,17 +282,8 @@ class _TransactionCard extends StatelessWidget {
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: transaction.bookImageUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              transaction.bookImageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _buildBookIcon(),
-                            ),
-                          )
-                        : _buildBookIcon(),
+                    // Transaction 모델에 bookImageUrl 필드 없음 (TODO: Book API 조인 필요)
+                    child: _buildBookIcon(),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -301,7 +291,7 @@ class _TransactionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          transaction.bookTitle ?? '교재명',
+                          '교재 ID: ${transaction.bookId}', // bookTitle 필드 없음
                           style: Theme.of(context).textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -333,58 +323,30 @@ class _TransactionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${transaction.pointsTransferred} P',
+                        '포인트 미정', // pointsTransferred 필드 없음
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: transactionColor,
                               fontWeight: FontWeight.bold,
                             ),
                       ),
                       const SizedBox(height: 4),
-                      if (isActive && transaction.remainingDays >= 0)
+                      // remainingDays 필드 없음
+                      if (isActive)
                         Text(
-                          '${transaction.remainingDays}일 남음',
+                          transaction.transStatusDisplayName,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: transaction.remainingDays <= 1
-                                ? AppColors.error
-                                : AppColors.textSecondary,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                     ],
                   ),
                 ],
               ),
-              if (isActive && transaction.lockerId != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: AppColors.info,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '사물함 ${transaction.lockerId}에서 수령 가능합니다',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          context.go('/locker/${transaction.lockerId}');
-                        },
-                        child: const Text('접근'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              // Transaction 모델에 lockerId 필드 없음 (TODO: Reservation/Locker API 조인 필요)
+              // if (isActive && transaction.lockerId != null) ...[
+              //   const SizedBox(height: 12),
+              //   Container(...),
+              // ],
             ],
           ),
         ),
@@ -403,39 +365,35 @@ class _TransactionCard extends StatelessWidget {
 
   /// 거래 상대방 표시
   String _getTransactionPartner() {
-    return transaction.lenderName ?? transaction.borrowerName ?? '사용자';
+    // Transaction 모델에 lenderName, borrowerName 필드 없음
+    // userId와 borrowerId만 있음
+    if (transaction.borrowerId != null) {
+      return '차용자 ID: ${transaction.borrowerId}';
+    }
+    return '대여자 ID: ${transaction.userId}';
   }
 
   /// 상태 아이콘
   IconData _getStatusIcon() {
-    switch (transaction.status) {
-      case TransactionStatus.pending:
+    switch (transaction.transStatus) {
+      case 'pending':
         return Icons.schedule;
-      case TransactionStatus.active:
+      case 'active':
         return Icons.sync;
-      case TransactionStatus.completed:
+      case 'completed':
         return Icons.check_circle_outline;
-      case TransactionStatus.cancelled:
+      case 'cancelled':
         return Icons.cancel_outlined;
-      case TransactionStatus.overdue:
+      case 'overdue':
         return Icons.warning_outlined;
+      default:
+        return Icons.help_outline;
     }
   }
 
   /// 상태 설명
   String _getStatusDescription() {
-    switch (transaction.status) {
-      case TransactionStatus.pending:
-        return '승인 대기중';
-      case TransactionStatus.active:
-        return '거래 진행중';
-      case TransactionStatus.completed:
-        return '거래 완료';
-      case TransactionStatus.cancelled:
-        return '거래 취소';
-      case TransactionStatus.overdue:
-        return '연체';
-    }
+    return transaction.transStatusDisplayName;
   }
 
   /// 날짜 포맷
@@ -444,18 +402,20 @@ class _TransactionCard extends StatelessWidget {
   }
 
   /// 거래 상태별 색상
-  Color _getTransactionColor(TransactionStatus status) {
+  Color _getTransactionColor(String status) {
     switch (status) {
-      case TransactionStatus.pending:
+      case 'pending':
         return AppColors.warning;
-      case TransactionStatus.active:
+      case 'active':
         return AppColors.info;
-      case TransactionStatus.completed:
+      case 'completed':
         return AppColors.success;
-      case TransactionStatus.cancelled:
+      case 'cancelled':
         return AppColors.textSecondary;
-      case TransactionStatus.overdue:
+      case 'overdue':
         return AppColors.error;
+      default:
+        return AppColors.textSecondary;
     }
   }
 }
@@ -503,47 +463,34 @@ class _TransactionDetailSheet extends StatelessWidget {
                       _DetailRow(label: '거래 번호', value: transaction.id),
                       _DetailRow(
                         label: '거래 일시',
-                        value: _formatDateTime(transaction.createdAt),
+                        value: _formatDateTime(transaction.transDate),
                       ),
                       _DetailRow(
                         label: '거래 상태',
-                        value: transaction.status.displayName,
+                        value: transaction.transStatusDisplayName,
                       ),
                       _DetailRow(
-                        label: '교재명',
-                        value: transaction.bookTitle ?? '교재명',
+                        label: '책 ID',
+                        value: transaction.bookId, // bookTitle 필드 없음
                       ),
                       _DetailRow(
-                        label: '거래 상대',
-                        value: transaction.lenderName ?? transaction.borrowerName ?? '사용자',
+                        label: '대여자 ID',
+                        value: transaction.userId,
                       ),
-                      _DetailRow(
-                        label: '거래 포인트',
-                        value: '${transaction.pointsTransferred} P',
-                      ),
-                      if (transaction.lockerId != null)
+                      if (transaction.borrowerId != null)
                         _DetailRow(
-                          label: '사물함 번호',
-                          value: transaction.lockerId.toString(),
+                          label: '차용자 ID',
+                          value: transaction.borrowerId!,
                         ),
-                      if (transaction.notes != null)
-                        _DetailRow(
-                          label: '참고사항',
-                          value: transaction.notes!,
-                        ),
+                      // pointsTransferred, lockerId, notes 필드 없음
                       const SizedBox(height: 20),
-                      if (transaction.status == TransactionStatus.active ||
-                          transaction.status == TransactionStatus.pending) ...[
+                      if (transaction.transStatus == 'active' ||
+                          transaction.transStatus == 'pending') ...[
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: transaction.lockerId != null
-                                ? () {
-                                    Navigator.pop(context);
-                                    context.go('/locker/${transaction.lockerId}');
-                                  }
-                                : null,
-                            child: const Text('사물함 접근'),
+                            onPressed: null, // lockerId 없음
+                            child: const Text('사물함 접근 (미지원)'),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -612,14 +559,14 @@ class _TransactionDetailSheet extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final TransactionStatus status;
+  final String status;
 
   const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
     final color = _getStatusColor();
-    final text = status.displayName;
+    final text = _getStatusDisplayName();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -637,18 +584,37 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 
+  String _getStatusDisplayName() {
+    switch (status) {
+      case 'pending':
+        return '대기 중';
+      case 'active':
+        return '진행 중';
+      case 'completed':
+        return '완료';
+      case 'cancelled':
+        return '취소됨';
+      case 'overdue':
+        return '연체';
+      default:
+        return '알 수 없음';
+    }
+  }
+
   Color _getStatusColor() {
     switch (status) {
-      case TransactionStatus.pending:
+      case 'pending':
         return AppColors.warning;
-      case TransactionStatus.active:
+      case 'active':
         return AppColors.info;
-      case TransactionStatus.completed:
+      case 'completed':
         return AppColors.success;
-      case TransactionStatus.cancelled:
+      case 'cancelled':
         return AppColors.textSecondary;
-      case TransactionStatus.overdue:
+      case 'overdue':
         return AppColors.error;
+      default:
+        return AppColors.textSecondary;
     }
   }
 }

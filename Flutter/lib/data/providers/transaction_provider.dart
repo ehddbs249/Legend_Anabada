@@ -197,7 +197,8 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// 사물함 배정
-  Future<bool> assignLocker(String transactionId, int lockerId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<bool> assignLocker(String transactionId, String lockerId) async {
     try {
       _setLoading(true);
       _clearError();
@@ -226,27 +227,39 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// 연체된 거래 목록 가져오기
+  /// NOTE: Transaction 모델에서 isOverdue, dueDate, returnedAt 필드가 제거되었습니다.
+  /// 현재 Transaction 모델은 trans_status 필드만 제공합니다.
+  /// 연체 여부는 백엔드 API에서 'overdue' 상태로 관리됩니다.
   List<Transaction> getOverdueTransactions() {
-    return _activeTransactions.where((transaction) => transaction.isOverdue).toList();
+    return _activeTransactions.where((transaction) {
+      return transaction.transStatus == 'overdue';
+    }).toList();
   }
 
   /// 곧 만료되는 거래 목록 가져오기 (3일 이내)
+  /// NOTE: Transaction 모델에 dueDate 필드가 없으므로 백엔드에서 관리해야 합니다.
+  /// 현재는 'active' 상태의 거래만 반환합니다.
+  /// TODO: 백엔드 API에서 만료 임박 거래를 별도로 제공하도록 수정 필요
   List<Transaction> getExpiringTransactions() {
+    // 백엔드 API에서 만료 임박 정보를 제공하도록 수정 필요
     return _activeTransactions.where((transaction) {
-      return transaction.remainingDays <= 3 && transaction.remainingDays > 0;
+      return transaction.transStatus == 'active';
     }).toList();
   }
 
   /// 거래 통계 계산
+  /// NOTE: Transaction 모델의 필드명이 변경되었습니다:
+  /// - lenderId → userId (거래를 시작한 사용자)
+  /// - TransactionStatus enum → String 타입의 transStatus 필드
   Map<String, int> getTransactionStats(String userId) {
     final lending = _myLendingTransactions.length;
     final borrowing = _myBorrowingTransactions.length;
     final completed = _transactions
-        .where((t) => (t.lenderId == userId || t.borrowerId == userId) &&
-                     t.status == TransactionStatus.completed)
+        .where((t) => (t.userId == userId || t.borrowerId == userId) &&
+                     t.transStatus == 'completed')
         .length;
     final active = _activeTransactions
-        .where((t) => t.lenderId == userId || t.borrowerId == userId)
+        .where((t) => t.userId == userId || t.borrowerId == userId)
         .length;
 
     return {

@@ -52,7 +52,8 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 특정 사물함 정보 가져오기
-  Future<Locker?> getLocker(int lockerId) async {
+  /// lockerId는 UUID String입니다.
+  Future<Locker?> getLocker(String lockerId) async {
     try {
       _setLoading(true);
       _clearError();
@@ -71,7 +72,8 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 예약
-  Future<bool> reserveLocker(int lockerId, String transactionId) async {
+  /// lockerId는 UUID String입니다.
+  Future<bool> reserveLocker(String lockerId, String transactionId) async {
     try {
       _setLoading(true);
       _clearError();
@@ -93,7 +95,8 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 반납
-  Future<bool> releaseLocker(int lockerId) async {
+  /// lockerId는 UUID String입니다.
+  Future<bool> releaseLocker(String lockerId) async {
     try {
       _setLoading(true);
       _clearError();
@@ -117,28 +120,17 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 열기 (접근 코드 검증)
-  Future<bool> openLocker(int lockerId, String accessCode) async {
+  /// lockerId는 UUID String입니다.
+  /// NOTE: Locker 모델에 lastAccessed 필드가 제거되었습니다.
+  Future<bool> openLocker(String lockerId, String accessCode) async {
     try {
       _setLoading(true);
       _clearError();
 
       final success = await _apiService.openLocker(lockerId, accessCode);
 
-      if (success) {
-        // 마지막 접근 시간 업데이트
-        final lockerIndex = _lockers.indexWhere((l) => l.id == lockerId);
-        if (lockerIndex != -1) {
-          _lockers[lockerIndex] = _lockers[lockerIndex].copyWith(
-            lastAccessed: DateTime.now(),
-          );
-        }
-
-        if (_selectedLocker?.id == lockerId) {
-          _selectedLocker = _selectedLocker!.copyWith(
-            lastAccessed: DateTime.now(),
-          );
-        }
-      }
+      // lastAccessed 필드는 Locker 모델에서 제거되었으므로
+      // SystemLog를 통해 접근 이력을 추적해야 합니다.
 
       _setLoading(false);
       notifyListeners();
@@ -151,7 +143,9 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 상태 업데이트
-  Future<bool> updateLockerStatus(int lockerId, LockerStatus status) async {
+  /// lockerId는 UUID String입니다.
+  /// status: "available", "occupied", "maintenance"
+  Future<bool> updateLockerStatus(String lockerId, String status) async {
     try {
       _setLoading(true);
       _clearError();
@@ -170,17 +164,19 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 접근 코드 생성
-  Future<String?> generateAccessCode(int lockerId, String transactionId) async {
+  /// lockerId는 UUID String입니다.
+  /// NOTE: Locker 모델에 accessCode 필드가 제거되었습니다.
+  /// 접근 코드는 Transaction 또는 별도 API로 관리됩니다.
+  @Deprecated('accessCode는 Locker 모델에서 제거되었습니다. Transaction API를 사용하세요.')
+  Future<String?> generateAccessCode(String lockerId, String transactionId) async {
     try {
       _setLoading(true);
       _clearError();
 
       final accessCode = await _apiService.generateLockerAccessCode(lockerId, transactionId);
 
-      // 선택된 사물함의 접근 코드 업데이트
-      if (_selectedLocker?.id == lockerId) {
-        _selectedLocker = _selectedLocker!.copyWith(accessCode: accessCode);
-      }
+      // accessCode 필드는 Locker 모델에 없습니다.
+      // Transaction API를 통해 접근 코드를 관리하세요.
 
       _setLoading(false);
       notifyListeners();
@@ -193,16 +189,26 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 특정 위치의 사물함 그리드 가져오기 (2x2)
+  /// NOTE: Locker 모델에 location, position 필드가 제거되었습니다.
+  /// lockerNum을 기반으로 계산하거나, 별도 UI 로직으로 처리해야 합니다.
+  @Deprecated('location, position 필드가 제거되었습니다. lockerNum으로 그리드를 계산하세요.')
   List<List<Locker?>> getLockerGrid(String location) {
-    final locationLockers = _lockers.where((l) => l.location == location).toList();
+    // location 필드가 Locker 모델에서 제거되었습니다.
+    // lockerNum을 2x2 그리드로 매핑하는 로직으로 대체하세요.
 
-    // 2x2 그리드 초기화
+    // 예시: lockerNum 1~4를 2x2 그리드로 변환
+    // 1 → (0, 0), 2 → (0, 1), 3 → (1, 0), 4 → (1, 1)
+
     List<List<Locker?>> grid = List.generate(2, (index) => List.filled(2, null));
 
-    // 사물함을 그리드에 배치
-    for (final locker in locationLockers) {
-      if (locker.position.row < 2 && locker.position.column < 2) {
-        grid[locker.position.row][locker.position.column] = locker;
+    for (final locker in _lockers) {
+      if (locker.lockerNum != null) {
+        final num = locker.lockerNum! - 1; // 0-based index
+        if (num >= 0 && num < 4) {
+          final row = num ~/ 2;
+          final col = num % 2;
+          grid[row][col] = locker;
+        }
       }
     }
 
@@ -210,11 +216,12 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 통계
+  /// NOTE: Locker 모델에 status enum이 제거되었습니다. String으로 비교합니다.
   Map<String, int> getLockerStats() {
-    final available = _lockers.where((l) => l.status == LockerStatus.available).length;
-    final occupied = _lockers.where((l) => l.status == LockerStatus.occupied).length;
-    final maintenance = _lockers.where((l) => l.status == LockerStatus.maintenance).length;
-    final broken = _lockers.where((l) => l.status == LockerStatus.broken).length;
+    final available = _lockers.where((l) => l.lockerStatus == 'available').length;
+    final occupied = _lockers.where((l) => l.lockerStatus == 'occupied').length;
+    final maintenance = _lockers.where((l) => l.lockerStatus == 'maintenance').length;
+    final broken = _lockers.where((l) => l.isBroken == true).length;
 
     return {
       'available': available,
@@ -226,8 +233,12 @@ class LockerProvider with ChangeNotifier {
   }
 
   /// 사물함 위치 목록 가져오기
+  /// NOTE: Locker 모델에 location 필드가 제거되었습니다.
+  /// 하드코딩된 위치 목록을 반환하거나, 별도 설정에서 가져와야 합니다.
+  @Deprecated('location 필드가 제거되었습니다. 하드코딩된 위치 목록 또는 설정 파일을 사용하세요.')
   List<String> getLockerLocations() {
-    return _lockers.map((l) => l.location).toSet().toList();
+    // location 필드가 없으므로, 하드코딩된 위치 반환
+    return ['1층 로비', '2층 복도', '3층 휴게실'];
   }
 
   /// 선택된 사물함 설정

@@ -17,7 +17,7 @@ class BookProvider with ChangeNotifier {
 
   // 검색 필터
   String _searchQuery = '';
-  BookCondition? _selectedCondition;
+  String? _selectedCondition; // condition grade: "excellent", "good", "fair", "poor"
   int? _minPrice;
   int? _maxPrice;
   String? _selectedCategory;
@@ -33,7 +33,7 @@ class BookProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   String get searchQuery => _searchQuery;
-  BookCondition? get selectedCondition => _selectedCondition;
+  String? get selectedCondition => _selectedCondition;
   int? get minPrice => _minPrice;
   int? get maxPrice => _maxPrice;
   String? get selectedCategory => _selectedCategory;
@@ -179,15 +179,16 @@ class BookProvider with ChangeNotifier {
   }
 
   /// 책 상태 업데이트 (대여, 반납 등)
-  Future<bool> updateBookStatus(String bookId, BookStatus status) async {
+  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
+  /// 책의 대여 상태는 BookTransaction을 통해 추적됩니다.
+  @Deprecated('Use BookTransaction to track rental status instead')
+  Future<bool> updateBookStatus(String bookId, String status) async {
     try {
       _setLoading(true);
       _clearError();
 
-      await _apiService.updateBookStatus(bookId, status);
-
-      // 목록에서 상태 업데이트
-      _updateBookStatusInLists(bookId, status);
+      // 더 이상 사용되지 않음 - BookTransaction으로 상태 추적
+      // await _apiService.updateBookStatus(bookId, status);
 
       _setLoading(false);
       notifyListeners();
@@ -201,7 +202,7 @@ class BookProvider with ChangeNotifier {
 
   /// 검색 필터 설정
   void setSearchFilters({
-    BookCondition? condition,
+    String? condition, // "excellent", "good", "fair", "poor"
     int? minPrice,
     int? maxPrice,
     String? category,
@@ -258,19 +259,19 @@ class BookProvider with ChangeNotifier {
   }
 
   /// 모든 목록에서 책 상태 업데이트
-  void _updateBookStatusInLists(String bookId, BookStatus status) {
-    _updateBookStatusInList(_books, bookId, status);
-    _updateBookStatusInList(_myBooks, bookId, status);
-    _updateBookStatusInList(_searchResults, bookId, status);
-    _updateBookStatusInList(_recommendedBooks, bookId, status);
+  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
+  @Deprecated('Use BookTransaction to track rental status instead')
+  void _updateBookStatusInLists(String bookId, String status) {
+    // Book 모델에 status 필드가 없으므로 더 이상 사용되지 않음
+    // BookTransaction을 통해 대여 상태를 추적하세요
   }
 
   /// 특정 목록에서 책 상태 업데이트
-  void _updateBookStatusInList(List<Book> list, String bookId, BookStatus status) {
-    final index = list.indexWhere((book) => book.id == bookId);
-    if (index != -1) {
-      list[index] = list[index].copyWith(status: status);
-    }
+  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
+  @Deprecated('Use BookTransaction to track rental status instead')
+  void _updateBookStatusInList(List<Book> list, String bookId, String status) {
+    // Book 모델에 status 필드가 없으므로 더 이상 사용되지 않음
+    // BookTransaction을 통해 대여 상태를 추적하세요
   }
 
   /// 로딩 상태 설정

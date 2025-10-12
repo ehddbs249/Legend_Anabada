@@ -87,9 +87,10 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
     required String name,
-    required String studentId,
-    required String university,
+    required String studentNumber,
     String? department,
+    String? grade,
+    String role = 'user',
   }) async {
     try {
       _setLoading(true);
@@ -113,14 +114,13 @@ class AuthProvider with ChangeNotifier {
         final user = User(
           id: authResponse.user!.id,
           email: email,
-          universityEmail: email,
           name: name,
-          studentId: studentId,
-          points: 1000, // 초기 포인트
-          university: university,
-          department: department,
+          studentNumber: studentNumber,
+          department: department ?? '',
           createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          role: role,
+          verify: false, // 이메일 인증 전
+          expiryDate: DateTime.now().add(const Duration(hours: 24)), // 24시간 후 만료
         );
 
         // API를 통해 사용자 정보 저장
@@ -201,11 +201,15 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// 포인트 업데이트
+  /// NOTE: 포인트는 UserPointBalance 테이블에서 별도 관리됩니다.
+  /// 포인트 정보가 필요한 경우 UserPointBalance API를 호출하세요.
+  @Deprecated('User 모델에서 points 필드가 제거되었습니다. UserPointBalance를 사용하세요.')
   Future<void> updatePoints(int newPoints) async {
-    if (_currentUser != null) {
-      _currentUser = _currentUser!.copyWith(points: newPoints);
-      notifyListeners();
-    }
+    // points 필드는 User 모델에서 제거되었습니다.
+    // 대신 UserPointBalance API를 사용하세요.
+    throw UnimplementedError(
+      'updatePoints는 더 이상 사용할 수 없습니다. UserPointBalance API를 사용하세요.',
+    );
   }
 
   /// 초기 인증 상태 확인

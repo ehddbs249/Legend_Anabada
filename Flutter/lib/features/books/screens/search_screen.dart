@@ -53,22 +53,22 @@ class _SearchScreenState extends State<SearchScreen> {
     final bookProvider = context.read<BookProvider>();
     final query = _searchController.text.trim();
 
-    // 필터 설정
-    BookCondition? condition;
+    // 필터 설정 - String으로 변경 (enum 제거됨)
+    String? condition;
     if (_selectedCondition != '전체') {
-      // 한글 -> enum 변환
+      // 한글 -> String 변환
       switch (_selectedCondition) {
         case '최상':
-          condition = BookCondition.excellent;
+          condition = 'excellent';
           break;
         case '양호':
-          condition = BookCondition.good;
+          condition = 'good';
           break;
         case '보통':
-          condition = BookCondition.fair;
+          condition = 'fair';
           break;
         case '하급':
-          condition = BookCondition.poor;
+          condition = 'poor';
           break;
       }
     }
@@ -236,12 +236,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     final book = searchResults[index];
                     return BookCard(
                       title: book.title,
-                      author: book.author ?? '저자 미상',
+                      author: book.author,
                       publisher: book.publisher,
-                      condition: book.condition.displayName,
-                      price: '${book.rentalPrice} P',
-                      imageUrl: book.imageUrl,
-                      department: book.subject,
+                      condition: book.conditionGradeDisplayName,
+                      price: '${book.pointPrice} P',
+                      imageUrl: book.imgUrl,
+                      // department 필드는 Book 모델에 없으므로 categoryId 사용 또는 제거
+                      // department: book.categoryId, // 카테고리 ID만 있음
                       isHorizontal: true,
                       onTap: () {
                         // TODO: 책 상세 화면으로 이동
@@ -280,13 +281,13 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('저자: ${book.author ?? "미상"}'),
+            Text('저자: ${book.author}'),
             Text('출판사: ${book.publisher ?? "미상"}'),
-            Text('상태: ${book.condition.displayName}'),
-            Text('가격: ${book.rentalPrice} P'),
-            if (book.description != null) ...[
+            Text('상태: ${book.conditionGradeDisplayName}'),
+            Text('가격: ${book.pointPrice} P'),
+            if (book.dmgTag != null) ...[
               const SizedBox(height: 8),
-              Text('설명: ${book.description}'),
+              Text('손상 태그: ${book.dmgTag}'),
             ],
           ],
         ),

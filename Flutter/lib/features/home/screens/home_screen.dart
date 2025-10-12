@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../data/models/book.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../core/constants/app_animations.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../core/utils/responsive_helper.dart';
@@ -201,7 +199,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWelcomeCard(BuildContext context, AuthProvider authProvider) {
     final user = authProvider.currentUser;
     final userName = user?.name ?? '사용자';
-    final userPoints = user?.points ?? 0;
+    // user.points 필드는 제거되었으므로 UserPointBalance API로 별도 조회 필요
+    // 임시로 0 표시 (TODO: UserPointBalance API 연동)
+    final userPoints = 0; // TODO: UserPointBalance API로 포인트 조회
 
     return PremiumCard(
       hasGradient: true,
@@ -483,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: transaction.status.toString().contains('active')
+                  color: transaction.transStatus == 'active'
                       ? AppColors.success
                       : AppColors.warning,
                   shape: BoxShape.circle,
@@ -492,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  transaction.bookTitle ?? '교재명',
+                  '책 ID: ${transaction.bookId}', // bookTitle 필드 없음
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -504,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '대여자: ${transaction.borrowerName ?? "사용자"}',
+            '차용자: ${transaction.borrowerId ?? "미정"}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -514,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${transaction.pointsTransferred ?? 0} P',
+                '포인트 미정', // pointsTransferred 필드 없음
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
@@ -527,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '진행중',
+                  transaction.transStatusDisplayName,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,
@@ -593,10 +593,10 @@ class _HomeScreenState extends State<HomeScreen> {
               delay: Duration(milliseconds: 500 + (index * 50)),
               child: BookDisplayCard(
                 title: book.title,
-                author: book.author ?? '저자 미상',
-                condition: book.condition.displayName,
-                price: '${book.rentalPrice} P',
-                imageUrl: book.imageUrl,
+                author: book.author,
+                condition: book.conditionGradeDisplayName,
+                price: '${book.pointPrice} P',
+                imageUrl: book.imgUrl,
                 onTap: () {
                   // TODO: 책 상세 화면으로 이동
                   // context.go('/book/${book.id}');

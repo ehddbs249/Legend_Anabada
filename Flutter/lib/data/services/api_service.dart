@@ -95,9 +95,11 @@ class ApiService {
   }
 
   /// 책 검색
+  /// NOTE: BookCondition enum이 제거되고 String을 사용합니다.
+  /// 가능한 값: "excellent", "good", "fair", "poor"
   Future<List<Book>> searchBooks({
     required String query,
-    BookCondition? condition,
+    String? condition, // "excellent", "good", "fair", "poor"
     int? minPrice,
     int? maxPrice,
     String? category,
@@ -111,7 +113,7 @@ class ApiService {
         'size': size,
       };
 
-      if (condition != null) queryParams['condition'] = condition.name;
+      if (condition != null) queryParams['condition'] = condition;
       if (minPrice != null) queryParams['minPrice'] = minPrice;
       if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
       if (category != null) queryParams['category'] = category;
@@ -186,9 +188,13 @@ class ApiService {
   }
 
   /// 책 상태 업데이트
-  Future<void> updateBookStatus(String bookId, BookStatus status) async {
+  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
+  /// 책의 대여 상태는 BookTransaction을 통해 추적됩니다.
+  @Deprecated('Use BookTransaction to track rental status instead')
+  Future<void> updateBookStatus(String bookId, String status) async {
     try {
-      await _dio.put('/books/$bookId/status', data: {'status': status.name});
+      // 더 이상 사용되지 않음 - BookTransaction으로 상태 추적
+      await _dio.put('/books/$bookId/status', data: {'status': status});
     } catch (e) {
       throw _handleError(e, '책 상태 업데이트');
     }
@@ -329,7 +335,8 @@ class ApiService {
   }
 
   /// 사물함 배정
-  Future<Transaction> assignLocker(String transactionId, int lockerId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<Transaction> assignLocker(String transactionId, String lockerId) async {
     try {
       final response = await _dio.put('/transactions/$transactionId/assign-locker', data: {
         'locker_id': lockerId,
@@ -365,7 +372,8 @@ class ApiService {
   }
 
   /// 특정 사물함 정보
-  Future<Locker> getLocker(int lockerId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<Locker> getLocker(String lockerId) async {
     try {
       final response = await _dio.get('/lockers/$lockerId');
       return Locker.fromJson(response.data);
@@ -375,7 +383,8 @@ class ApiService {
   }
 
   /// 사물함 예약
-  Future<Locker> reserveLocker(int lockerId, String transactionId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<Locker> reserveLocker(String lockerId, String transactionId) async {
     try {
       final response = await _dio.post('/lockers/$lockerId/reserve', data: {
         'transaction_id': transactionId,
@@ -387,7 +396,8 @@ class ApiService {
   }
 
   /// 사물함 반납
-  Future<Locker> releaseLocker(int lockerId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<Locker> releaseLocker(String lockerId) async {
     try {
       final response = await _dio.post('/lockers/$lockerId/release');
       return Locker.fromJson(response.data);
@@ -397,7 +407,8 @@ class ApiService {
   }
 
   /// 사물함 열기
-  Future<bool> openLocker(int lockerId, String accessCode) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<bool> openLocker(String lockerId, String accessCode) async {
     try {
       final response = await _dio.post('/lockers/$lockerId/open', data: {
         'access_code': accessCode,
@@ -409,10 +420,12 @@ class ApiService {
   }
 
   /// 사물함 상태 업데이트
-  Future<Locker> updateLockerStatus(int lockerId, LockerStatus status) async {
+  /// NOTE: LockerStatus enum이 제거되고 String을 사용합니다.
+  /// 가능한 값: "available", "occupied", "maintenance"
+  Future<Locker> updateLockerStatus(String lockerId, String status) async {
     try {
       final response = await _dio.put('/lockers/$lockerId/status', data: {
-        'status': status.name,
+        'status': status,
       });
       return Locker.fromJson(response.data);
     } catch (e) {
@@ -421,7 +434,8 @@ class ApiService {
   }
 
   /// 사물함 접근 코드 생성
-  Future<String> generateLockerAccessCode(int lockerId, String transactionId) async {
+  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  Future<String> generateLockerAccessCode(String lockerId, String transactionId) async {
     try {
       final response = await _dio.post('/lockers/$lockerId/generate-code', data: {
         'transaction_id': transactionId,

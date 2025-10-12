@@ -22,10 +22,8 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _publisherController = TextEditingController();
-  final _isbnController = TextEditingController();
-  final _subjectController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _originalPriceController = TextEditingController();
+  // NOTE: ISBN, subject, originalPrice 필드는 새 Book 모델에서 제거되었습니다.
+  final _descriptionController = TextEditingController(); // dmgTag로 매핑됨
 
   String _selectedDepartment = '컴퓨터공학과';
   String _selectedCondition = '양호';
@@ -104,15 +102,6 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _isbnController,
-                decoration: const InputDecoration(
-                  labelText: 'ISBN',
-                  hintText: '예: 978-89-12345-67-8',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _publisherController,
                 decoration: const InputDecoration(
                   labelText: '출판사',
@@ -120,20 +109,12 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _originalPriceController,
-                decoration: const InputDecoration(
-                  labelText: '원가 (선택)',
-                  hintText: '예: 25000',
-                  suffixText: '원',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
+              // NOTE: categoryId로 변경됨. 실제 카테고리 ID 매핑 필요 (백엔드 연동 시)
               DropdownButtonFormField<String>(
                 initialValue: _selectedDepartment,
                 decoration: const InputDecoration(
-                  labelText: '학과 *',
+                  labelText: '학과/분야 *',
+                  helperText: '카테고리를 선택해주세요',
                 ),
                 items: _departments.map((dept) {
                   return DropdownMenuItem(
@@ -145,20 +126,6 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                   setState(() {
                     _selectedDepartment = value!;
                   });
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _subjectController,
-                decoration: const InputDecoration(
-                  labelText: '과목명 *',
-                  hintText: '예: 자료구조',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '과목명을 입력해주세요';
-                  }
-                  return null;
                 },
               ),
               const SizedBox(height: 24),
@@ -273,11 +240,13 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // NOTE: dmgTag로 매핑됨 (손상 태그)
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
-                  labelText: '추가 설명',
-                  hintText: '교재 상태에 대한 추가 설명을 입력해주세요',
+                  labelText: '손상/상태 태그',
+                  hintText: '교재의 손상 상태나 특이사항을 간단히 입력해주세요',
+                  helperText: '예: 앞표지 약간 구겨짐, 3페이지 낙서',
                 ),
                 maxLines: 3,
               ),
@@ -354,29 +323,25 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
     });
 
     try {
-      // BookCondition enum으로 변환
-      BookCondition condition;
+      // 상태 등급을 String으로 변환 (enum 제거됨)
+      // NOTE: BookCondition enum이 제거되고 String을 사용합니다.
+      // 가능한 값: "excellent", "good", "fair", "poor"
+      String conditionGrade;
       switch (_selectedCondition) {
         case '최상':
-          condition = BookCondition.excellent;
+          conditionGrade = 'excellent';
           break;
         case '양호':
-          condition = BookCondition.good;
+          conditionGrade = 'good';
           break;
         case '보통':
-          condition = BookCondition.fair;
+          conditionGrade = 'fair';
           break;
         case '하급':
-          condition = BookCondition.poor;
+          conditionGrade = 'poor';
           break;
         default:
-          condition = BookCondition.good;
-      }
-
-      // 원가 파싱
-      int? originalPrice;
-      if (_originalPriceController.text.isNotEmpty) {
-        originalPrice = int.tryParse(_originalPriceController.text);
+          conditionGrade = 'good';
       }
 
       // TODO: 이미지 업로드 구현 (Supabase Storage)
@@ -386,24 +351,23 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
         // imageUrl = await SupabaseService().uploadBookImage(_images.first, 'book_${DateTime.now().millisecondsSinceEpoch}');
       }
 
-      // Book 객체 생성
+      // NOTE: Book 모델이 변경되었습니다:
+      // - isbn, originalPrice, description, category, subject, status 필드 제거
+      // - userId, categoryId, pointPrice, conditionGrade, dmgTag, imgUrl, registeredAt 필드 추가
+      // TODO: categoryId를 실제 Category 테이블의 ID로 매핑해야 합니다.
+      // 현재는 임시로 학과명을 사용합니다. (백엔드 연동 시 수정 필요)
       final book = Book(
         id: '', // 서버에서 생성
+        userId: currentUser.id,
+        categoryId: _selectedDepartment, // TODO: 실제 카테고리 ID로 변경 필요
         title: _titleController.text.trim(),
-        author: _authorController.text.trim().isNotEmpty ? _authorController.text.trim() : null,
+        author: _authorController.text.trim(),
         publisher: _publisherController.text.trim().isNotEmpty ? _publisherController.text.trim() : null,
-        isbn: _isbnController.text.trim().isNotEmpty ? _isbnController.text.trim() : null,
-        originalPrice: originalPrice,
-        rentalPrice: _suggestedPoints,
-        condition: condition,
-        ownerId: currentUser.id,
-        status: BookStatus.available,
-        imageUrl: imageUrl,
-        description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
-        category: _selectedDepartment,
-        subject: _subjectController.text.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        pointPrice: _suggestedPoints,
+        conditionGrade: conditionGrade,
+        dmgTag: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        imgUrl: imageUrl,
+        registeredAt: DateTime.now(),
       );
 
       // 책 등록
@@ -440,10 +404,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
     _titleController.dispose();
     _authorController.dispose();
     _publisherController.dispose();
-    _isbnController.dispose();
-    _subjectController.dispose();
     _descriptionController.dispose();
-    _originalPriceController.dispose();
     super.dispose();
   }
 }
