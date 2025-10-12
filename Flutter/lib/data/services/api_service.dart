@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../models/user.dart';
@@ -159,10 +160,44 @@ class ApiService {
   }
 
   /// 책 등록
-  Future<Book> createBook(Book book) async {
+  /// imageFile이 있으면 MultipartRequest(FormData)로 전송
+  /// header에 토큰은 인터셉터에서 자동으로 추가됨
+  Future<Book> createBook(Book book, {File? imageFile}) async {
     try {
-      final response = await _dio.post('/books', data: book.toJson());
-      return Book.fromJson(response.data);
+      if (imageFile != null) {
+        // 이미지가 있는 경우: FormData 사용 (multipart/form-data)
+        final formData = FormData.fromMap({
+          // Book 필드들을 개별적으로 추가
+          'userId': book.userId,
+          'categoryId': book.categoryId,
+          'title': book.title,
+          'author': book.author,
+          if (book.publisher != null) 'publisher': book.publisher,
+          'pointPrice': book.pointPrice,
+          if (book.conditionGrade != null) 'conditionGrade': book.conditionGrade,
+          if (book.dmgTag != null) 'dmgTag': book.dmgTag,
+          'registeredAt': book.registeredAt.toIso8601String(),
+
+          // 이미지 파일 추가
+          'image': await MultipartFile.fromFile(
+            imageFile.path,
+            filename: imageFile.path.split('/').last,
+          ),
+        });
+
+        final response = await _dio.post(
+          '/books',
+          data: formData,
+          options: Options(
+            contentType: 'multipart/form-data',
+          ),
+        );
+        return Book.fromJson(response.data);
+      } else {
+        // 이미지가 없는 경우: 기존대로 JSON 사용
+        final response = await _dio.post('/books', data: book.toJson());
+        return Book.fromJson(response.data);
+      }
     } catch (e) {
       throw _handleError(e, '책 등록');
     }

@@ -344,12 +344,8 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
           conditionGrade = 'good';
       }
 
-      // TODO: 이미지 업로드 구현 (Supabase Storage)
-      String? imageUrl;
-      if (_images.isNotEmpty) {
-        // 첫 번째 이미지만 업로드 (추후 여러 이미지 지원 가능)
-        // imageUrl = await SupabaseService().uploadBookImage(_images.first, 'book_${DateTime.now().millisecondsSinceEpoch}');
-      }
+      // NOTE: 이미지 업로드는 ApiService.createBook()에서 FormData로 처리됩니다.
+      // 첫 번째 이미지만 전송 (추후 여러 이미지 지원 가능)
 
       // NOTE: Book 모델이 변경되었습니다:
       // - isbn, originalPrice, description, category, subject, status 필드 제거
@@ -366,12 +362,15 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
         pointPrice: _suggestedPoints,
         conditionGrade: conditionGrade,
         dmgTag: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
-        imgUrl: imageUrl,
+        imgUrl: null, // 서버에서 이미지 업로드 후 URL 생성
         registeredAt: DateTime.now(),
       );
 
-      // 책 등록
-      final success = await bookProvider.registerBook(book);
+      // 책 등록 (이미지 파일 포함)
+      final success = await bookProvider.registerBook(
+        book,
+        imageFile: _images.isNotEmpty ? _images.first : null,
+      );
 
       if (success) {
         _showSnackBar('교재가 성공적으로 등록되었습니다!');

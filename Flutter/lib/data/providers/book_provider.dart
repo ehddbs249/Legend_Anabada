@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/book.dart';
 import '../services/api_service.dart';
@@ -111,12 +112,13 @@ class BookProvider with ChangeNotifier {
   }
 
   /// 책 등록
-  Future<bool> registerBook(Book book) async {
+  /// imageFile: 업로드할 이미지 파일 (선택적)
+  Future<bool> registerBook(Book book, {File? imageFile}) async {
     try {
       _setLoading(true);
       _clearError();
 
-      final newBook = await _apiService.createBook(book);
+      final newBook = await _apiService.createBook(book, imageFile: imageFile);
       _myBooks.add(newBook);
       _books.add(newBook);
 
