@@ -2,12 +2,11 @@ package aise.legend_anabada.service;
 
 import aise.legend_anabada.config.AppProperties;
 import aise.legend_anabada.config.exception.*;
+import aise.legend_anabada.dto.request.*;
+import aise.legend_anabada.dto.response.LoginDTO;
 import aise.legend_anabada.util.JwtUtil;
-import aise.legend_anabada.dto.request.AuthRequest;
-import aise.legend_anabada.dto.request.LoginRequest;
-import aise.legend_anabada.dto.request.UserRegisterRequest;
-import aise.legend_anabada.dto.response.AuthResponse;
-import aise.legend_anabada.dto.response.Response;
+import aise.legend_anabada.dto.AuthResponse;
+import aise.legend_anabada.dto.Response;
 import aise.legend_anabada.entity.User;
 import aise.legend_anabada.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +15,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,7 +32,26 @@ public class UserService {
 
     private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-    public Response<Void> registerUser(UserRegisterRequest request) {
+    public Response<User> createUser(UserCreateRequest request) {
+        User user = new User();
+
+        user.setId(UUID.fromString(request.getUser_id()));
+        user.setEmail(request.getEmail());
+        user.setPassword(bCryptPasswordEncoder.encode(request.getPassword()));
+        user.setStudentNumber(request.getStudent_number());
+        user.setDepartment(request.getDepartment());
+        user.setName(request.getName());
+        user.setCreatedAt(OffsetDateTime.parse(request.getCreated_at()));
+        user.setRole(request.getRole());
+        user.setVerify(request.isVerify());
+        user.setExpiryDate(Date.from(Instant.parse(request.getExpiryDate())));
+
+        userRepository.save(user);
+
+        return new Response<>(true,"success",user);
+    }
+
+    public Response<LoginDTO> registerUser(UserRegisterRequest request) {
         // 사용자는 학교 이메일 인증을 통해 회원가입을 진행할 수 있다.
         String name = request.getName();
         String studentNumber = request.getStudentNumber();
@@ -65,7 +85,7 @@ public class UserService {
 
         sendMail(email, uuid.toString());
 
-        return new Response<Void>(true, "이메일로 인증 메일이 발송되었습니다.", null);
+        return new Response<LoginDTO>(true, "이메일로 인증 메일이 발송되었습니다.", new LoginDTO(email));
     }
 
     public Response<Void> authenticateUser(AuthRequest request) {
@@ -116,7 +136,7 @@ public class UserService {
         return new Response<Void>(true, "인증 성공", null);
     }
 
-    public AuthResponse<String> loginUser(LoginRequest request) {
+    public AuthResponse<LoginDTO> loginUser(LoginRequest request) {
         // 로그인은 이메일(ID)과 비밀번호를 입력하여 시스템에 대조하고, 일치할 경우 접속을 허용한다.
         String email = request.getEmail();
         String password = request.getPassword();
@@ -136,11 +156,19 @@ public class UserService {
 
         // 로그인 성공
         String token = JwtUtil.generateToken(email);
-        return new AuthResponse<String>(true, token, "로그인 성공", email);
+        return new AuthResponse<LoginDTO>(true, token, "로그인 성공", new LoginDTO(email));
     }
 
-    public void editUser(String email, String password, String sessionId) {
+    public AuthResponse<Void> editUser(String token, UserEditRequest request) {
         // 사용자는 개인정보(이름, 학과, 이메일)를 수정할 수 있다.
+        if(!JwtUtil.validateToken(token)) {
+            throw new ExpiredTokenException("인증 만료됨");
+        }
+        String email = JwtUtil.getEmailFromToken(token);
+
+        // TODO
+
+        return new AuthResponse<>(true, token, "성공적으로 변경되었습니다.", null);
     }
 
     public void viewTransactionHistory(String email, String sessionId) {
@@ -155,5 +183,6 @@ public class UserService {
         // 사용자의 포인트는 교재 기부 및 이벤트로 적립되며, 예약·대여·연체 시 차감된다.
         // 포인트는 충전 및 소멸이 가능하며, 24개월 미사용 시 자동 소멸되고 소멸 30일 전 고지된다.
         // 포인트 내역은 사용자 본인과 관리자가 모두 열람할 수 있다.
+
     }
 }
