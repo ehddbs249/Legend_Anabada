@@ -1,10 +1,11 @@
 package aise.legend_anabada.service;
 
-import aise.legend_anabada.AppProperties;
-import aise.legend_anabada.JwtUtil;
+import aise.legend_anabada.config.AppProperties;
+import aise.legend_anabada.config.exception.*;
+import aise.legend_anabada.util.JwtUtil;
 import aise.legend_anabada.dto.request.AuthRequest;
 import aise.legend_anabada.dto.request.LoginRequest;
-import aise.legend_anabada.dto.request.RegisterRequest;
+import aise.legend_anabada.dto.request.UserRegisterRequest;
 import aise.legend_anabada.dto.response.AuthResponse;
 import aise.legend_anabada.dto.response.Response;
 import aise.legend_anabada.entity.User;
@@ -30,7 +31,7 @@ public class UserService {
 
     private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-    public Response<Void> registerUser(RegisterRequest request) {
+    public Response<Void> registerUser(UserRegisterRequest request) {
         // 사용자는 학교 이메일 인증을 통해 회원가입을 진행할 수 있다.
         String name = request.getName();
         String studentNumber = request.getStudentNumber();
@@ -53,11 +54,12 @@ public class UserService {
         user.setPassword(encodedPassword);
         user.setStudentNumber(studentNumber);
         user.setDepartment(department);
+        user.setGrade(grade);
         user.setName(name);
         user.setRole("학생");
 
         // 이메일 인증용
-        // user.setExpiryDate(expiryDate);
+        user.setExpiryDate(expiryDate);
 
         userRepository.save(user);
 
@@ -71,7 +73,7 @@ public class UserService {
 
         Optional<User> user = userRepository.findByEmail(email);
         if (user.isEmpty()){
-            return new Response<Void>(false, "이메일이 존재하지 않습니다.", null);
+            throw new InvalidEmailException("이메일이 존재하지 않거나, 회원가입이 필요합니다.");
         }
 
         String token = user.get().getId().toString();
@@ -99,13 +101,13 @@ public class UserService {
         Optional<User> user = userRepository.findById(uuid);
 
         if (user.isEmpty()) {
-            return new Response<Void>(false, "유효하지 않은 토큰", null);
+            throw new InvalidTokenException("유효하지 않는 토큰");
         }
 
         User user_ = user.get();
 
         if (user_.getExpiryDate().before(new Date())) {
-            return new Response<Void>(false, "토큰 만료", null);
+            throw new ExpiredTokenException("만료된 토큰");
         }
 
         user_.setVerify(true);
@@ -121,21 +123,20 @@ public class UserService {
 
         Optional<User> user = userRepository.findById(email);
 
-        boolean isSuccess = false;
-        String token = "";
-        String message = "로그인 실패";
-
-        if (user.isPresent()) {
-            String encodedPassword = bCryptPasswordEncoder.encode(password);
-            isSuccess = user.get().getPassword().equals(encodedPassword);
+        if (user.isEmpty()) {
+            throw new InvalidEmailException("이메일이 존재하지 않거나 회원가입이 필요합니다.");
         }
 
-        if (isSuccess) {
-            token = JwtUtil.generateToken(email);
-            message = "로그인 성공";
+        User user_ = user.get();
+
+        // 비밀번호 검증
+        if (!bCryptPasswordEncoder.matches(password, user_.getPassword())) {
+            throw new InvalidPasswordException("비밀번호가 올바르지 않습니다.");
         }
 
-        return new AuthResponse<String>(isSuccess, token, message, email);
+        // 로그인 성공
+        String token = JwtUtil.generateToken(email);
+        return new AuthResponse<String>(true, token, "로그인 성공", email);
     }
 
     public void editUser(String email, String password, String sessionId) {

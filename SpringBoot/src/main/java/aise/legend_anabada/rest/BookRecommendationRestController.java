@@ -1,4 +1,4 @@
-package aise.legend_anabada.restController;
+package aise.legend_anabada.rest;
 
 import aise.legend_anabada.entity.Book;
 import aise.legend_anabada.service.BookRecommendationService;
@@ -11,25 +11,25 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recommend")
-public class BookRecommendationController {
+public class BookRecommendationRestController {
     @Autowired
     private BookRecommendationService recommendationService;
 
-    // ------------------- 개인화 교재 추천 -------------------
+    // TODO 개인화 교재 추천
     @GetMapping("/personalized")
     public ResponseEntity<List<Book>> getPersonalizedRecommendations(@RequestParam String userId) {
         List<Book> recommendations = recommendationService.getPersonalizedRecommendations(userId);
         return ResponseEntity.ok(recommendations);
     }
 
-    // ------------------- 교재 수요 예측 -------------------
+    // TODO 교재 수요 예측
     @GetMapping("/demand")
     public ResponseEntity<Map<String, Integer>> predictBookDemand(@RequestParam String semester) {
         Map<String, Integer> demand = recommendationService.predictBookDemand(semester);
         return ResponseEntity.ok(demand);
     }
 
-    // ------------------- 사물함 운영 계획 생성 -------------------
+    // TODO 사물함 운영 계획 생성
     @PostMapping("/locker-plan")
     public ResponseEntity<String> generateLockerOperationPlan(@RequestParam String semester) {
         recommendationService.generateLockerOperationPlan(semester);

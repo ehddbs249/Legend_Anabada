@@ -1,4 +1,4 @@
-package aise.legend_anabada;
+package aise.legend_anabada.util;
 
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

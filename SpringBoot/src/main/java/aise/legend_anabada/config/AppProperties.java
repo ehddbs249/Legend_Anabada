@@ -1,4 +1,4 @@
-package aise.legend_anabada;
+package aise.legend_anabada.config;
 
 import lombok.Getter;
 import lombok.Setter;

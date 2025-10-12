@@ -1,48 +1,85 @@
-package aise.legend_anabada.restController;
+package aise.legend_anabada.rest;
 
+import aise.legend_anabada.config.Status;
+import aise.legend_anabada.config.exception.ExpiredTokenException;
+import aise.legend_anabada.config.exception.InvalidEmailException;
+import aise.legend_anabada.config.exception.InvalidPasswordException;
 import aise.legend_anabada.dto.request.AuthRequest;
 import aise.legend_anabada.dto.request.LoginRequest;
-import aise.legend_anabada.dto.request.RegisterRequest;
+import aise.legend_anabada.dto.request.UserRegisterRequest;
 import aise.legend_anabada.dto.response.AuthResponse;
 import aise.legend_anabada.dto.response.Response;
 import aise.legend_anabada.entity.User;
 import aise.legend_anabada.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user")
-public class UserController {
+public class UserRestController {
     @Autowired
     private UserService userService;
 
     // 회원가입
     @PostMapping("/register")
-    public ResponseEntity<Response<Void>> registerUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Response<Void>> registerUser(@RequestBody UserRegisterRequest request) {
         Response<Void> response = userService.registerUser(request);
+
         return ResponseEntity.ok(response);
     }
 
     // 메일 전송
     @PostMapping("/auth")
     public ResponseEntity<Response<Void>> authUser(@RequestBody AuthRequest request) {
-        Response<Void> response = userService.authenticateUser(request);
-        return ResponseEntity.ok(response);
+        try {
+            Response<Void> response = userService.authenticateUser(request);
+            return ResponseEntity.ok(response);
+        } catch (InvalidEmailException e) {
+            return ResponseEntity.status(Status.BAD_REQUEST)
+                    .body(new Response<>(false, e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(Status.INTERNAL_SERVER_ERROR)
+                    .body(new Response<>(false, e.getMessage(), null));
+        }
     }
 
     // 학생 인증
-    @PostMapping("/verify")
+    @GetMapping("/verify")
+    @ResponseBody
     public ResponseEntity<Response<Void>> verifyUser(@RequestParam("token") String token) {
-        Response<Void> response = userService.verifyEmail(token);
-        return ResponseEntity.ok(response);
+        try {
+            Response<Void> response = userService.verifyEmail(token);
+            return ResponseEntity.ok(response);
+        } catch (InvalidEmailException e) {
+            return ResponseEntity.status(Status.BAD_REQUEST)
+                    .body(new Response<>(false, e.getMessage(), null));
+        } catch (ExpiredTokenException e) {
+            return ResponseEntity.status(Status.UNAUTHORIZED)
+                    .body(new Response<>(false, e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(Status.INTERNAL_SERVER_ERROR)
+                    .body(new Response<>(false, e.getMessage(), null));
+        }
     }
 
     // 로그인
     @PostMapping("/login")
     public ResponseEntity<AuthResponse<String>> loginUser(@RequestBody LoginRequest request) {
-        AuthResponse<String> response = userService.loginUser(request);
-        return ResponseEntity.ok(response);
+        try {
+            AuthResponse<String> response = userService.loginUser(request);
+            return ResponseEntity.ok(response);
+        } catch (InvalidEmailException e) {
+            return ResponseEntity.status(Status.BAD_REQUEST)
+                    .body(new AuthResponse<>(false, null, e.getMessage(), null));
+        } catch (InvalidPasswordException e) {
+            return ResponseEntity.status(Status.UNAUTHORIZED)
+                    .body(new AuthResponse<>(false, null, e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(Status.INTERNAL_SERVER_ERROR)
+                    .body(new AuthResponse<>(false, null, e.getMessage(), null));
+        }
     }
 
     // 로그아웃

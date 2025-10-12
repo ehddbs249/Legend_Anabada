@@ -1,4 +1,4 @@
-package aise.legend_anabada.restController;
+package aise.legend_anabada.rest;
 
 import aise.legend_anabada.entity.Book;
 import aise.legend_anabada.service.BookSearchService;
@@ -11,11 +11,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/search")
-public class BookSearchController {
+public class BookSearchRestController {
     @Autowired
     private BookSearchService bookSearchService;
 
-    // ------------------- 교재 검색 -------------------
+    // TODO 교재 검색
     @GetMapping("/search")
     public ResponseEntity<List<Book>> searchBooks(@RequestParam String keyword,
                                                   @RequestParam String schoolId) {
@@ -23,7 +23,7 @@ public class BookSearchController {
         return ResponseEntity.ok(books);
     }
 
-    // ------------------- 검색 결과 필터링 -------------------
+    // TODO 검색 결과 필터링
     @PostMapping("/filter")
     public ResponseEntity<List<Book>> filterSearchResults(@RequestBody List<Book> books,
                                                           @RequestParam(required = false) String state,
@@ -35,7 +35,7 @@ public class BookSearchController {
         return ResponseEntity.ok(filtered);
     }
 
-    // ------------------- 교재 상세 조회 -------------------
+    // TODO 교재 상세 조회
     @GetMapping("/{bookId}")
     public ResponseEntity<Book> viewBookDetails(@PathVariable String bookId,
                                                 @RequestParam String schoolId) {
@@ -43,7 +43,7 @@ public class BookSearchController {
         return ResponseEntity.ok(book);
     }
 
-    // ------------------- 교재 문제 신고 -------------------
+    // TODO 교재 문제 신고
     @PostMapping("/{bookId}/report")
     public ResponseEntity<String> reportBookIssue(@PathVariable String bookId,
                                                   @RequestParam String userId,
@@ -52,7 +52,7 @@ public class BookSearchController {
         return ResponseEntity.ok("교재 신고 완료");
     }
 
-    // ------------------- 교재 예약 -------------------
+    // TODO 교재 예약
     @PostMapping("/{bookId}/reserve")
     public ResponseEntity<String> reserveBook(@PathVariable String bookId,
                                               @RequestParam String userId) {

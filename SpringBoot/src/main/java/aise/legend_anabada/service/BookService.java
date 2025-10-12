@@ -1,10 +1,15 @@
 package aise.legend_anabada.service;
 
+import aise.legend_anabada.dto.request.BookRegisterRequest;
+import aise.legend_anabada.dto.response.AuthResponse;
+import aise.legend_anabada.dto.response.Response;
 import aise.legend_anabada.entity.Book;
 import aise.legend_anabada.repository.BookRepository;
 import aise.legend_anabada.repository.UserRepository;
+import aise.legend_anabada.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class BookService {
@@ -12,6 +17,25 @@ public class BookService {
     private BookRepository bookRepository;
     @Autowired
     private UserRepository userRepository;
+
+    public AuthResponse<Void> registerBook(String token, MultipartFile image, BookRegisterRequest request) {
+        if(!JwtUtil.validateToken(token)){
+            return new AuthResponse<Void>(false, null, "로그인 필요", null);
+        }
+
+        String email = JwtUtil.getEmailFromToken(token);
+
+        try{
+
+        } catch (Exception e) {
+            return new AuthResponse<Void>(false, JwtUtil.generateToken(email), "사진 업로드 실패", null);
+        }
+
+        Book book = new Book();
+
+
+        return new AuthResponse<Void>(true, JwtUtil.generateToken(email), request.getTitle() + "교재 등록이 완료되었습니다.", null);
+    }
 
     public void registerBookAutomatically(Book book) {
         // 사용자는 자동 혹은 수동으로 책을 인식하여 등록할 수 있다.
