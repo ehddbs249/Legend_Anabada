@@ -260,22 +260,6 @@ class BookProvider with ChangeNotifier {
     }
   }
 
-  /// 모든 목록에서 책 상태 업데이트
-  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
-  @Deprecated('Use BookTransaction to track rental status instead')
-  void _updateBookStatusInLists(String bookId, String status) {
-    // Book 모델에 status 필드가 없으므로 더 이상 사용되지 않음
-    // BookTransaction을 통해 대여 상태를 추적하세요
-  }
-
-  /// 특정 목록에서 책 상태 업데이트
-  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
-  @Deprecated('Use BookTransaction to track rental status instead')
-  void _updateBookStatusInList(List<Book> list, String bookId, String status) {
-    // Book 모델에 status 필드가 없으므로 더 이상 사용되지 않음
-    // BookTransaction을 통해 대여 상태를 추적하세요
-  }
-
   /// 로딩 상태 설정
   void _setLoading(bool loading) {
     _isLoading = loading;

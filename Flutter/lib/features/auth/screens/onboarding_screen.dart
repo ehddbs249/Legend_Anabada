@@ -5,7 +5,6 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/constants/app_animations.dart';
 import '../../../core/widgets/onboarding_widgets.dart';
-import '../../../core/widgets/premium_button.dart';
 
 /// 아나바다 앱의 온보딩 화면
 /// 앱의 주요 기능과 가치를 소개하는 화면
@@ -228,13 +227,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
 /// 온보딩 상태 관리를 위한 헬퍼 클래스
 class OnboardingHelper {
-  static const String _onboardingKey = 'has_seen_onboarding';
-
   /// 온보딩을 봤는지 확인
   static Future<bool> hasSeenOnboarding() async {
     // SharedPreferences 구현 필요
     // final prefs = await SharedPreferences.getInstance();
-    // return prefs.getBool(_onboardingKey) ?? false;
+    // return prefs.getBool('has_seen_onboarding') ?? false;
     return false; // 임시
   }
 
@@ -242,7 +239,7 @@ class OnboardingHelper {
   static Future<void> setOnboardingComplete() async {
     // SharedPreferences 구현 필요
     // final prefs = await SharedPreferences.getInstance();
-    // await prefs.setBool(_onboardingKey, true);
+    // await prefs.setBool('has_seen_onboarding', true);
   }
 
   /// 온보딩 상태 초기화 (개발/테스트용)
@@ -284,13 +281,7 @@ class _FeatureGuideOverlayState extends State<FeatureGuideOverlay> {
   Future<void> _checkShouldShowGuide() async {
     // 해당 기능의 가이드를 본 적이 있는지 확인
     // SharedPreferences 구현 필요
-    final shouldShow = false; // 임시
-
-    if (shouldShow && mounted) {
-      setState(() {
-        _shouldShowGuide = true;
-      });
-    }
+    // TODO: 백엔드 연동 시 구현
   }
 
   void _dismissGuide() {

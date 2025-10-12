@@ -19,8 +19,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _studentIdController = TextEditingController();
 
-  String _selectedDepartment = '컴퓨터공학과';
-  String _selectedGrade = '1학년';
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
@@ -106,9 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    setState(() {
-                      _selectedDepartment = value!;
-                    });
+                    // TODO: 백엔드 연동 시 선택된 학과 처리
                   },
                 ),
                 const SizedBox(height: 16),
@@ -125,9 +121,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    setState(() {
-                      _selectedGrade = value!;
-                    });
+                    // TODO: 백엔드 연동 시 선택된 학년 처리
                   },
                 ),
                 const SizedBox(height: 32),
