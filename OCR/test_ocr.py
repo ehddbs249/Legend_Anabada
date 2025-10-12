@@ -15,7 +15,7 @@ def test_local_image():
     """로컬 이미지 테스트"""
     # 테스트 이미지 경로
     test_image_dir = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
+        os.path.dirname(__file__),
         'EasyOCR', 'demoimg'
     )
 

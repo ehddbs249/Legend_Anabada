@@ -10,7 +10,7 @@ from pathlib import Path
 # 프로젝트 루트 경로 설정
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
-EASYOCR_PATH = os.path.join(PROJECT_ROOT, 'EasyOCR')
+EASYOCR_PATH = os.path.join(CURRENT_DIR, 'EasyOCR')
 
 # EasyOCR 경로 추가
 if EASYOCR_PATH not in sys.path:
