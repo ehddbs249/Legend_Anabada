@@ -7,6 +7,7 @@ import '../../../core/widgets/premium_card.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/transaction_provider.dart';
+import '../../../data/providers/point_provider.dart';
 import '../../../app/routes/app_router.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -30,11 +31,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final bookProvider = Provider.of<BookProvider>(context, listen: false);
     final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     if (authProvider.currentUser != null) {
       await Future.wait([
         bookProvider.fetchMyBooks(authProvider.currentUser!.id),
         transactionProvider.fetchMyBorrowingTransactions(authProvider.currentUser!.id),
+        pointProvider.fetchBalance(authProvider.currentUser!.id),
+        pointProvider.fetchTransactions(authProvider.currentUser!.id),
       ]);
     }
   }
@@ -155,9 +159,11 @@ class _ProfileHeader extends StatelessWidget {
 class _PointsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // TODO: UserPointBalance 테이블에서 포인트 정보 가져오기
-    // 현재는 임시 데이터 표시
-    const currentPoints = 0;
+    final pointProvider = Provider.of<PointProvider>(context);
+
+    // 포인트 정보 가져오기
+    final currentPoints = pointProvider.currentBalance?.pointTotal ?? 0;
+    // TODO: 획득/사용 포인트는 추후 구현
     const earnedPoints = 0;
     const spentPoints = 0;
 

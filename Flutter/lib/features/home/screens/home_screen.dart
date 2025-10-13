@@ -10,6 +10,7 @@ import '../../../core/utils/responsive_helper.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/transaction_provider.dart';
+import '../../../data/providers/point_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = context.read<AuthProvider>();
     final bookProvider = context.read<BookProvider>();
     final transactionProvider = context.read<TransactionProvider>();
+    final pointProvider = context.read<PointProvider>();
 
     // 인증 상태 확인
     await authProvider.checkAuthState();
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await Future.wait([
         bookProvider.fetchRecommendedBooks(userId),
         transactionProvider.fetchActiveTransactions(userId),
+        pointProvider.fetchBalance(userId),
       ]);
     }
   }
@@ -58,8 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: _buildAppBar(context),
-      body: Consumer3<AuthProvider, BookProvider, TransactionProvider>(
-        builder: (context, authProvider, bookProvider, transactionProvider, child) {
+      body: Consumer4<AuthProvider, BookProvider, TransactionProvider, PointProvider>(
+        builder: (context, authProvider, bookProvider, transactionProvider, pointProvider, child) {
           return RefreshIndicator(
             onRefresh: _onRefresh,
             color: AppColors.primary,
@@ -199,9 +202,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWelcomeCard(BuildContext context, AuthProvider authProvider) {
     final user = authProvider.currentUser;
     final userName = user?.name ?? '사용자';
-    // user.points 필드는 제거되었으므로 UserPointBalance API로 별도 조회 필요
-    // 임시로 0 표시 (TODO: UserPointBalance API 연동)
-    final userPoints = 0; // TODO: UserPointBalance API로 포인트 조회
+    // PointProvider에서 포인트 조회
+    final pointProvider = context.watch<PointProvider>();
+    final userPoints = pointProvider.currentBalance?.pointTotal ?? 0;
 
     return PremiumCard(
       hasGradient: true,
