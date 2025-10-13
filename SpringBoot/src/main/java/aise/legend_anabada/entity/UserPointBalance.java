@@ -28,4 +28,12 @@ public class UserPointBalance {
     @Column(name = "point_total", nullable = false)
     private Integer pointTotal;
 
+    @ColumnDefault("0")
+    @Column(name = "total_earned", nullable = false)
+    private Integer totalEarned;
+
+    @ColumnDefault("0")
+    @Column(name = "total_spent", nullable = false)
+    private Integer totalSpent;
+
 }

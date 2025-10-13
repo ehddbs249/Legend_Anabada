@@ -68,15 +68,27 @@ class PointProvider with ChangeNotifier {
     }
   }
 
-  /// 획득 포인트 합계 (양수만)
+  /// 획득 포인트 합계 - DB에서 가져오거나, 없으면 계산
   int get totalEarned {
+    // DB에 값이 있으면 사용 (방안 2)
+    if (_currentBalance?.totalEarned != null && _currentBalance!.totalEarned > 0) {
+      return _currentBalance!.totalEarned;
+    }
+
+    // Fallback: 클라이언트에서 계산 (방안 1)
     return _transactions
         .where((tx) => tx.isEarned)
         .fold(0, (sum, tx) => sum + tx.pointChange);
   }
 
-  /// 사용 포인트 합계 (음수의 절대값)
+  /// 사용 포인트 합계 - DB에서 가져오거나, 없으면 계산
   int get totalSpent {
+    // DB에 값이 있으면 사용 (방안 2)
+    if (_currentBalance?.totalSpent != null && _currentBalance!.totalSpent > 0) {
+      return _currentBalance!.totalSpent;
+    }
+
+    // Fallback: 클라이언트에서 계산 (방안 1)
     return _transactions
         .where((tx) => tx.isSpent)
         .fold(0, (sum, tx) => sum + tx.pointChange.abs());

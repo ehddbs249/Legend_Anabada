@@ -163,9 +163,9 @@ class _PointsCard extends StatelessWidget {
 
     // 포인트 정보 가져오기
     final currentPoints = pointProvider.currentBalance?.pointTotal ?? 0;
-    // TODO: 획득/사용 포인트는 추후 구현
-    const earnedPoints = 0;
-    const spentPoints = 0;
+    // DB 또는 계산을 통해 획득/사용 포인트 가져오기
+    final earnedPoints = pointProvider.totalEarned;
+    final spentPoints = pointProvider.totalSpent;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
