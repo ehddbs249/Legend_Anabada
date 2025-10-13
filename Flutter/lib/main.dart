@@ -11,6 +11,7 @@ import 'data/providers/auth_provider.dart';
 import 'data/providers/book_provider.dart';
 import 'data/providers/transaction_provider.dart';
 import 'data/providers/locker_provider.dart';
+import 'data/providers/category_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,8 @@ class AnabadaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         // 책 관리
         ChangeNotifierProvider(create: (_) => BookProvider()),
+        // 카테고리 관리
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
         // 거래 관리
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         // 사물함 관리

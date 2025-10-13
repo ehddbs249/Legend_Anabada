@@ -1,13 +1,14 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../app/routes/app_router.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
+import '../../../data/providers/category_provider.dart';
 import '../../../data/models/book.dart';
 
 class RegisterBookScreen extends StatefulWidget {
@@ -25,22 +26,11 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   // NOTE: ISBN, subject, originalPrice 필드는 새 Book 모델에서 제거되었습니다.
   final _descriptionController = TextEditingController(); // dmgTag로 매핑됨
 
-  String _selectedDepartment = '컴퓨터공학과';
+  String? _selectedCategoryId; // 실제 카테고리 ID (UUID)
   String _selectedCondition = '양호';
   int _suggestedPoints = 0;
-  final List<File> _images = [];
+  final List<XFile> _images = [];
   bool _isSubmitting = false;
-
-  final List<String> _departments = [
-    '컴퓨터공학과',
-    '전자공학과',
-    '기계공학과',
-    '경영학과',
-    '경제학과',
-    '심리학과',
-    '국어국문학과',
-    '영어영문학과',
-  ];
 
   final Map<String, int> _conditionPoints = {
     '최상': 500,
@@ -53,6 +43,11 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   void initState() {
     super.initState();
     _suggestedPoints = _conditionPoints[_selectedCondition] ?? 0;
+
+    // 카테고리 목록 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoryProvider>().fetchCategories();
+    });
   }
 
   @override
@@ -109,23 +104,43 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // NOTE: categoryId로 변경됨. 실제 카테고리 ID 매핑 필요 (백엔드 연동 시)
-              DropdownButtonFormField<String>(
-                initialValue: _selectedDepartment,
-                decoration: const InputDecoration(
-                  labelText: '학과/분야 *',
-                  helperText: '카테고리를 선택해주세요',
-                ),
-                items: _departments.map((dept) {
-                  return DropdownMenuItem(
-                    value: dept,
-                    child: Text(dept),
+              // 카테고리 선택 (실제 Supabase category 테이블 사용)
+              Consumer<CategoryProvider>(
+                builder: (context, categoryProvider, child) {
+                  final categories = categoryProvider.categories;
+
+                  if (categoryProvider.isLoading) {
+                    return const LinearProgressIndicator();
+                  }
+
+                  if (categories.isEmpty) {
+                    return const Text('카테고리를 불러오는 중...');
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    value: _selectedCategoryId,
+                    decoration: const InputDecoration(
+                      labelText: '카테고리 *',
+                      helperText: '교재 카테고리를 선택해주세요',
+                    ),
+                    items: categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category.id,
+                        child: Text('${category.categoryName} (${category.classficationType == 'major' ? '전공' : '교양'})'),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategoryId = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '카테고리를 선택해주세요';
+                      }
+                      return null;
+                    },
                   );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDepartment = value!;
-                  });
                 },
               ),
               const SizedBox(height: 24),
@@ -301,7 +316,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
 
     if (image != null) {
       setState(() {
-        _images.add(File(image.path));
+        _images.add(image);
       });
     }
   }
@@ -347,15 +362,17 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       // NOTE: 이미지 업로드는 ApiService.createBook()에서 FormData로 처리됩니다.
       // 첫 번째 이미지만 전송 (추후 여러 이미지 지원 가능)
 
-      // NOTE: Book 모델이 변경되었습니다:
-      // - isbn, originalPrice, description, category, subject, status 필드 제거
-      // - userId, categoryId, pointPrice, conditionGrade, dmgTag, imgUrl, registeredAt 필드 추가
-      // TODO: categoryId를 실제 Category 테이블의 ID로 매핑해야 합니다.
-      // 현재는 임시로 학과명을 사용합니다. (백엔드 연동 시 수정 필요)
+      // 카테고리 ID 확인
+      if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+        _showSnackBar('카테고리를 선택해주세요');
+        return;
+      }
+
+      // Book 모델 생성
       final book = Book(
         id: '', // 서버에서 생성
         userId: currentUser.id,
-        categoryId: _selectedDepartment, // TODO: 실제 카테고리 ID로 변경 필요
+        categoryId: _selectedCategoryId!, // 실제 카테고리 UUID 사용
         title: _titleController.text.trim(),
         author: _authorController.text.trim(),
         publisher: _publisherController.text.trim().isNotEmpty ? _publisherController.text.trim() : null,
@@ -374,7 +391,9 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
 
       if (success) {
         _showSnackBar('교재가 성공적으로 등록되었습니다!');
-        context.go(AppRoutes.home);
+        if (mounted) {
+          context.go(AppRoutes.home);
+        }
       } else {
         _showSnackBar(bookProvider.errorMessage ?? '교재 등록에 실패했습니다');
       }
@@ -443,7 +462,7 @@ class _AddPhotoButton extends StatelessWidget {
 }
 
 class _PhotoItem extends StatelessWidget {
-  final File image;
+  final XFile image;
   final VoidCallback onRemove;
 
   const _PhotoItem({
@@ -455,17 +474,37 @@ class _PhotoItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            image: DecorationImage(
-              image: FileImage(image),
-              fit: BoxFit.cover,
-            ),
-          ),
+        FutureBuilder<Uint8List>(
+          future: image.readAsBytes(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Container(
+                width: 100,
+                height: 100,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: DecorationImage(
+                    image: MemoryImage(snapshot.data!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            } else {
+              return Container(
+                width: 100,
+                height: 100,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[300],
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+          },
         ),
         Positioned(
           top: 4,

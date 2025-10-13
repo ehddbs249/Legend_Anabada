@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/notification.dart';
 
 /// Supabase 서비스 클래스
@@ -105,7 +105,7 @@ class SupabaseService {
   /// === 파일 저장 기능 ===
 
   /// 책 이미지 업로드
-  Future<String> uploadBookImage(File imageFile, String fileName) async {
+  Future<String> uploadBookImage(XFile imageFile, String fileName) async {
     try {
       final bytes = await imageFile.readAsBytes();
       final path = 'book-images/$fileName';
@@ -123,10 +123,10 @@ class SupabaseService {
   }
 
   /// 프로필 이미지 업로드
-  Future<String> uploadProfileImage(File imageFile, String userId) async {
+  Future<String> uploadProfileImage(XFile imageFile, String userId) async {
     try {
       final bytes = await imageFile.readAsBytes();
-      final extension = imageFile.path.split('.').last;
+      final extension = imageFile.name.split('.').last;
       final path = 'profile-images/$userId.$extension';
 
       await client.storage

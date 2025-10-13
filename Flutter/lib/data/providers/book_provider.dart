@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/book.dart';
 import '../services/supabase_service.dart';
 
@@ -145,7 +145,7 @@ class BookProvider with ChangeNotifier {
 
   /// 책 등록
   /// imageFile: 업로드할 이미지 파일 (선택적)
-  Future<bool> registerBook(Book book, {File? imageFile}) async {
+  Future<bool> registerBook(Book book, {XFile? imageFile}) async {
     try {
       _setLoading(true);
       _clearError();
@@ -157,7 +157,7 @@ class BookProvider with ChangeNotifier {
       }
 
       final bookData = {
-        'book_id': book.id,
+        // book_id는 Supabase가 자동 생성 (gen_random_uuid())
         'user_id': book.userId,
         'category_id': book.categoryId,
         'title': book.title,
