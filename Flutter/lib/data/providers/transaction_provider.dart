@@ -1,11 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/transaction.dart';
-import '../services/api_service.dart';
 
 /// 거래 관련 상태 관리 Provider
 class TransactionProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
-
   List<Transaction> _transactions = [];
   List<Transaction> _myLendingTransactions = [];
   List<Transaction> _myBorrowingTransactions = [];
@@ -29,7 +27,12 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _transactions = await _apiService.getTransactions();
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .order('trans_date', ascending: false);
+
+      _transactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -44,7 +47,13 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _myLendingTransactions = await _apiService.getLendingTransactions(userId);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .eq('user_id', userId)
+          .order('trans_date', ascending: false);
+
+      _myLendingTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -59,7 +68,13 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _myBorrowingTransactions = await _apiService.getBorrowingTransactions(userId);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .eq('borrower_id', userId)
+          .order('trans_date', ascending: false);
+
+      _myBorrowingTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -74,7 +89,14 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _activeTransactions = await _apiService.getActiveTransactions(userId);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .or('user_id.eq.$userId,borrower_id.eq.$userId')
+          .inFilter('trans_status', ['pending', 'active'])
+          .order('trans_date', ascending: false);
+
+      _activeTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -94,13 +116,21 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final transaction = await _apiService.createTransaction(
-        bookId: bookId,
-        borrowerId: borrowerId,
-        rentalDays: rentalDays,
-        notes: notes,
-      );
+      final transactionData = {
+        'book_id': bookId,
+        'borrower_id': borrowerId,
+        'rental_days': rentalDays,
+        'trans_status': 'pending',
+        'trans_date': DateTime.now().toIso8601String(),
+      };
 
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .insert(transactionData)
+          .select()
+          .single();
+
+      final transaction = Transaction.fromJson(response);
       _transactions.add(transaction);
       _activeTransactions.add(transaction);
 
@@ -114,54 +144,21 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// 거래 승인
-  Future<bool> approveTransaction(String transactionId) async {
-    try {
-      _setLoading(true);
-      _clearError();
-
-      final transaction = await _apiService.approveTransaction(transactionId);
-      _updateTransactionInLists(transaction);
-
-      _setLoading(false);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _setError('거래 승인 중 오류가 발생했습니다: ${e.toString()}');
-      _setLoading(false);
-      return false;
-    }
-  }
-
-  /// 거래 거절
-  Future<bool> rejectTransaction(String transactionId, String reason) async {
-    try {
-      _setLoading(true);
-      _clearError();
-
-      final transaction = await _apiService.rejectTransaction(transactionId, reason);
-      _updateTransactionInLists(transaction);
-
-      _setLoading(false);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _setError('거래 거절 중 오류가 발생했습니다: ${e.toString()}');
-      _setLoading(false);
-      return false;
-    }
-  }
-
   /// 거래 완료 (책 반납)
   Future<bool> completeTransaction(String transactionId) async {
     try {
       _setLoading(true);
       _clearError();
 
-      final transaction = await _apiService.completeTransaction(transactionId);
-      _updateTransactionInLists(transaction);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .update({'trans_status': 'completed'})
+          .eq('trans_id', transactionId)
+          .select()
+          .single();
 
-      // 활성 거래에서 제거
+      final transaction = Transaction.fromJson(response);
+      _updateTransactionInLists(transaction);
       _activeTransactions.removeWhere((t) => t.id == transactionId);
 
       _setLoading(false);
@@ -180,10 +177,15 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final transaction = await _apiService.cancelTransaction(transactionId);
-      _updateTransactionInLists(transaction);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .update({'trans_status': 'cancelled'})
+          .eq('trans_id', transactionId)
+          .select()
+          .single();
 
-      // 활성 거래에서 제거
+      final transaction = Transaction.fromJson(response);
+      _updateTransactionInLists(transaction);
       _activeTransactions.removeWhere((t) => t.id == transactionId);
 
       _setLoading(false);
@@ -196,14 +198,46 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// 사물함 배정
-  /// NOTE: Locker 모델의 lockerId 타입이 int에서 String으로 변경되었습니다.
+  /// 특정 거래 가져오기
+  Future<Transaction?> getTransaction(String transactionId) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .eq('trans_id', transactionId)
+          .single();
+      return Transaction.fromJson(response);
+    } catch (e) {
+      _setError('거래 정보를 불러오는데 실패했습니다: ${e.toString()}');
+      return null;
+    }
+  }
+
+  /// 거래 승인 (미구현 - Supabase 테이블 스키마에 따라 구현 필요)
+  Future<bool> approveTransaction(String transactionId) async {
+    // TODO: Supabase 테이블 스키마에 승인 필드 추가 필요
+    return completeTransaction(transactionId);
+  }
+
+  /// 거래 거절 (미구현)
+  Future<bool> rejectTransaction(String transactionId, String reason) async {
+    return cancelTransaction(transactionId);
+  }
+
+  /// 사물함 배정 (미구현)
   Future<bool> assignLocker(String transactionId, String lockerId) async {
     try {
       _setLoading(true);
       _clearError();
 
-      final transaction = await _apiService.assignLocker(transactionId, lockerId);
+      final response = await Supabase.instance.client
+          .from('book_transaction')
+          .update({'locker_id': lockerId})
+          .eq('trans_id', transactionId)
+          .select()
+          .single();
+
+      final transaction = Transaction.fromJson(response);
       _updateTransactionInLists(transaction);
 
       _setLoading(false);
@@ -216,41 +250,21 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// 특정 거래 가져오기
-  Future<Transaction?> getTransaction(String transactionId) async {
-    try {
-      return await _apiService.getTransaction(transactionId);
-    } catch (e) {
-      _setError('거래 정보를 불러오는데 실패했습니다: ${e.toString()}');
-      return null;
-    }
-  }
-
   /// 연체된 거래 목록 가져오기
-  /// NOTE: Transaction 모델에서 isOverdue, dueDate, returnedAt 필드가 제거되었습니다.
-  /// 현재 Transaction 모델은 trans_status 필드만 제공합니다.
-  /// 연체 여부는 백엔드 API에서 'overdue' 상태로 관리됩니다.
   List<Transaction> getOverdueTransactions() {
     return _activeTransactions.where((transaction) {
       return transaction.transStatus == 'overdue';
     }).toList();
   }
 
-  /// 곧 만료되는 거래 목록 가져오기 (3일 이내)
-  /// NOTE: Transaction 모델에 dueDate 필드가 없으므로 백엔드에서 관리해야 합니다.
-  /// 현재는 'active' 상태의 거래만 반환합니다.
-  /// TODO: 백엔드 API에서 만료 임박 거래를 별도로 제공하도록 수정 필요
+  /// 곧 만료되는 거래 목록 가져오기
   List<Transaction> getExpiringTransactions() {
-    // 백엔드 API에서 만료 임박 정보를 제공하도록 수정 필요
     return _activeTransactions.where((transaction) {
       return transaction.transStatus == 'active';
     }).toList();
   }
 
   /// 거래 통계 계산
-  /// NOTE: Transaction 모델의 필드명이 변경되었습니다:
-  /// - lenderId → userId (거래를 시작한 사용자)
-  /// - TransactionStatus enum → String 타입의 transStatus 필드
   Map<String, int> getTransactionStats(String userId) {
     final lending = _myLendingTransactions.length;
     final borrowing = _myBorrowingTransactions.length;
@@ -270,10 +284,11 @@ class TransactionProvider with ChangeNotifier {
     };
   }
 
-  /// 포인트 내역 가져오기
+  /// 포인트 내역 가져오기 (미구현 - UserPointBalance 테이블 구현 필요)
   Future<List<Map<String, dynamic>>> getPointHistory(String userId) async {
     try {
-      return await _apiService.getPointHistory(userId);
+      // TODO: UserPointBalance 테이블 구현
+      return [];
     } catch (e) {
       _setError('포인트 내역을 불러오는데 실패했습니다: ${e.toString()}');
       return [];

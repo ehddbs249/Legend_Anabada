@@ -132,7 +132,7 @@ class AuthProvider with ChangeNotifier {
           department: department ?? '',
           createdAt: DateTime.now(),
           role: role,
-          verify: authResponse.user!.emailConfirmedAt != null, // Supabase Auth의 이메일 인증 여부
+          grade: grade,
         );
 
         _currentUser = user;

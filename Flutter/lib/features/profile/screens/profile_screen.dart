@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/premium_card.dart';
+import '../../../data/providers/auth_provider.dart';
+import '../../../data/providers/book_provider.dart';
+import '../../../data/providers/transaction_provider.dart';
+import '../../../app/routes/app_router.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final bookProvider = Provider.of<BookProvider>(context, listen: false);
+    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+
+    if (authProvider.currentUser != null) {
+      await Future.wait([
+        bookProvider.fetchMyBooks(authProvider.currentUser!.id),
+        transactionProvider.fetchMyBorrowingTransactions(authProvider.currentUser!.id),
+      ]);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +68,18 @@ class ProfileScreen extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.currentUser;
+
+    if (user == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final initial = user.name.isNotEmpty ? user.name[0] : '?';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -46,7 +88,7 @@ class _ProfileHeader extends StatelessWidget {
             radius: 50,
             backgroundColor: AppColors.primaryLight,
             child: Text(
-              '김',
+              initial,
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     color: AppColors.primary,
                   ),
@@ -54,12 +96,12 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '김철수',
+            user.name,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            'student@university.ac.kr',
+            user.email,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -68,30 +110,34 @@ class _ProfileHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              if (user.department.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    user.department,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha:0.1),
+                  color: user.role.isNotEmpty
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '컴퓨터공학과',
+                  user.role.isNotEmpty ? '${user.role} 인증 완료' : '미인증',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '3학년',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.accent,
+                        color: user.role.isNotEmpty ? AppColors.success : AppColors.warning,
                       ),
                 ),
               ),
@@ -106,6 +152,12 @@ class _ProfileHeader extends StatelessWidget {
 class _PointsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // TODO: UserPointBalance 테이블에서 포인트 정보 가져오기
+    // 현재는 임시 데이터 표시
+    const currentPoints = 0;
+    const earnedPoints = 0;
+    const spentPoints = 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -118,7 +170,7 @@ class _PointsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha:0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -135,12 +187,15 @@ class _PointsCard extends StatelessWidget {
                   Text(
                     '보유 포인트',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha:0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '1,200 P',
+                    '${currentPoints.toString().replaceAllMapped(
+                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                          (Match m) => '${m[1]},',
+                        )} P',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -151,7 +206,7 @@ class _PointsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -171,7 +226,10 @@ class _PointsCard extends StatelessWidget {
               _PointsStatItem(
                 icon: Icons.arrow_upward,
                 label: '획득 포인트',
-                value: '2,400 P',
+                value: '${earnedPoints.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )} P',
                 color: Colors.green.shade300,
               ),
               Container(
@@ -182,7 +240,10 @@ class _PointsCard extends StatelessWidget {
               _PointsStatItem(
                 icon: Icons.arrow_downward,
                 label: '사용 포인트',
-                value: '1,200 P',
+                value: '${spentPoints.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    )} P',
                 color: Colors.red.shade300,
               ),
             ],
@@ -234,6 +295,12 @@ class _PointsStatItem extends StatelessWidget {
 class _MenuSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final bookProvider = Provider.of<BookProvider>(context);
+    final transactionProvider = Provider.of<TransactionProvider>(context);
+
+    final myBooksCount = bookProvider.myBooks.length;
+    final borrowedBooksCount = transactionProvider.myBorrowingTransactions.length;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -251,14 +318,14 @@ class _MenuSection extends StatelessWidget {
                 _MenuItem(
                   icon: Icons.book_outlined,
                   title: '등록한 교재',
-                  subtitle: '5권',
+                  subtitle: '$myBooksCount권',
                   onTap: () {},
                 ),
                 const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.shopping_bag_outlined,
                   title: '구매한 교재',
-                  subtitle: '3권',
+                  subtitle: '$borrowedBooksCount권',
                   onTap: () {},
                 ),
                 const Divider(height: 1),
@@ -266,13 +333,15 @@ class _MenuSection extends StatelessWidget {
                   icon: Icons.history,
                   title: '거래 내역',
                   subtitle: '최근 30일',
-                  onTap: () {},
+                  onTap: () {
+                    // TODO: 거래 내역 페이지로 이동
+                  },
                 ),
                 const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.favorite_outline,
                   title: '관심 교재',
-                  subtitle: '12권',
+                  subtitle: '0권', // TODO: 관심 교재 기능 구현
                   onTap: () {},
                 ),
               ],
@@ -326,20 +395,29 @@ class _MenuSection extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('로그아웃'),
           content: const Text('정말 로그아웃 하시겠습니까?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               },
               child: const Text('취소'),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+
+                // 로그아웃 실행
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.signOut();
+
+                // 로그인 화면으로 이동
+                if (context.mounted) {
+                  context.go(AppRoutes.login);
+                }
               },
               child: const Text(
                 '로그아웃',

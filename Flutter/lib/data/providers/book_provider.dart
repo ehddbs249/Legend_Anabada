@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
-import '../services/api_service.dart';
+import '../services/supabase_service.dart';
 
 /// 책 관련 상태 관리 Provider
 class BookProvider with ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
 
   List<Book> _books = [];
   List<Book> _searchResults = [];
@@ -45,7 +46,12 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _books = await _apiService.getBooks();
+      final response = await Supabase.instance.client
+          .from('book')
+          .select()
+          .order('registered_at', ascending: false);
+
+      _books = (response as List).map((json) => Book.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -64,13 +70,26 @@ class BookProvider with ChangeNotifier {
       if (query.isEmpty) {
         _searchResults = [];
       } else {
-        _searchResults = await _apiService.searchBooks(
-          query: query,
-          condition: _selectedCondition,
-          minPrice: _minPrice,
-          maxPrice: _maxPrice,
-          category: _selectedCategory,
-        );
+        var queryBuilder = Supabase.instance.client
+            .from('book')
+            .select()
+            .or('title.ilike.%$query%,author.ilike.%$query%,publisher.ilike.%$query%');
+
+        if (_selectedCondition != null) {
+          queryBuilder = queryBuilder.eq('condition_grade', _selectedCondition!);
+        }
+        if (_minPrice != null) {
+          queryBuilder = queryBuilder.gte('point_price', _minPrice!);
+        }
+        if (_maxPrice != null) {
+          queryBuilder = queryBuilder.lte('point_price', _maxPrice!);
+        }
+        if (_selectedCategory != null) {
+          queryBuilder = queryBuilder.eq('category_id', _selectedCategory!);
+        }
+
+        final response = await queryBuilder.order('registered_at', ascending: false);
+        _searchResults = (response as List).map((json) => Book.fromJson(json)).toList();
       }
 
       _setSearching(false);
@@ -87,7 +106,14 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _recommendedBooks = await _apiService.getRecommendedBooks(userId);
+      // TODO: 추천 알고리즘 구현 (현재는 최신 책 반환)
+      final response = await Supabase.instance.client
+          .from('book')
+          .select()
+          .limit(10)
+          .order('registered_at', ascending: false);
+
+      _recommendedBooks = (response as List).map((json) => Book.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -102,7 +128,13 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      _myBooks = await _apiService.getMyBooks(userId);
+      final response = await Supabase.instance.client
+          .from('book')
+          .select()
+          .eq('user_id', userId)
+          .order('registered_at', ascending: false);
+
+      _myBooks = (response as List).map((json) => Book.fromJson(json)).toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -118,7 +150,33 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final newBook = await _apiService.createBook(book, imageFile: imageFile);
+      String? imageUrl;
+      if (imageFile != null) {
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${book.userId}.jpg';
+        imageUrl = await _supabaseService.uploadBookImage(imageFile, fileName);
+      }
+
+      final bookData = {
+        'book_id': book.id,
+        'user_id': book.userId,
+        'category_id': book.categoryId,
+        'title': book.title,
+        'author': book.author,
+        'publisher': book.publisher,
+        'point_price': book.pointPrice,
+        'condition_grade': book.conditionGrade,
+        'dmg_tag': book.dmgTag,
+        'img_url': imageUrl ?? book.imgUrl,
+        'registered_at': DateTime.now().toIso8601String(),
+      };
+
+      final response = await Supabase.instance.client
+          .from('book')
+          .insert(bookData)
+          .select()
+          .single();
+
+      final newBook = Book.fromJson(response);
       _myBooks.add(newBook);
       _books.add(newBook);
 
@@ -138,7 +196,25 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final updatedBook = await _apiService.updateBook(book);
+      final updateData = {
+        'category_id': book.categoryId,
+        'title': book.title,
+        'author': book.author,
+        'publisher': book.publisher,
+        'point_price': book.pointPrice,
+        'condition_grade': book.conditionGrade,
+        'dmg_tag': book.dmgTag,
+        'img_url': book.imgUrl,
+      };
+
+      final response = await Supabase.instance.client
+          .from('book')
+          .update(updateData)
+          .eq('book_id', book.id)
+          .select()
+          .single();
+
+      final updatedBook = Book.fromJson(response);
 
       // 목록에서 업데이트
       _updateBookInList(_books, updatedBook);
@@ -162,7 +238,10 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      await _apiService.deleteBook(bookId);
+      await Supabase.instance.client
+          .from('book')
+          .delete()
+          .eq('book_id', bookId);
 
       // 목록에서 제거
       _books.removeWhere((book) => book.id == bookId);
@@ -235,7 +314,12 @@ class BookProvider with ChangeNotifier {
   /// 특정 책 가져오기
   Future<Book?> getBook(String bookId) async {
     try {
-      return await _apiService.getBook(bookId);
+      final response = await Supabase.instance.client
+          .from('book')
+          .select()
+          .eq('book_id', bookId)
+          .single();
+      return Book.fromJson(response);
     } catch (e) {
       _setError('책 정보를 불러오는데 실패했습니다: ${e.toString()}');
       return null;
@@ -245,7 +329,13 @@ class BookProvider with ChangeNotifier {
   /// ISBN으로 책 정보 검색
   Future<Book?> searchBookByISBN(String isbn) async {
     try {
-      return await _apiService.searchBookByISBN(isbn);
+      // ISBN 필드가 Book 모델에 없으므로 title로 검색
+      final response = await Supabase.instance.client
+          .from('book')
+          .select()
+          .ilike('title', '%$isbn%')
+          .maybeSingle();
+      return response != null ? Book.fromJson(response) : null;
     } catch (e) {
       _setError('ISBN 검색 중 오류가 발생했습니다: ${e.toString()}');
       return null;

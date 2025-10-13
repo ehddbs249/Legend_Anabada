@@ -1,13 +1,13 @@
 /// 사용자 데이터 모델
-/// Spring Boot Entity: User (user_id, email, password, student_number, department, name, created_at, role, verify, expiryDate)
+/// Supabase Table: User (user_id, email, password, student_number, department, name, created_at, role, grade)
 class User {
-  /// 사용자 ID (UUID) ← user_id
+  /// 사용자 ID (UUID) ← user_id (Supabase Auth와 연동)
   final String id;
 
   /// 이메일 주소 ← email
   final String email;
 
-  /// 비밀번호 (보안상 API 응답에 포함되지 않을 수 있음) ← password
+  /// 비밀번호 (Supabase Auth 사용으로 사용하지 않음) ← password
   final String? password;
 
   /// 학번 ← student_number
@@ -25,11 +25,8 @@ class User {
   /// 사용자 역할 (user, admin 등) ← role
   final String role;
 
-  /// 이메일 인증 여부 ← verify
-  final bool verify;
-
-  /// 인증 토큰 만료 시간 ← expiryDate (nullable)
-  final DateTime? expiryDate;
+  /// 학년 정보 ← grade
+  final String? grade;
 
   const User({
     required this.id,
@@ -40,8 +37,7 @@ class User {
     required this.name,
     required this.createdAt,
     required this.role,
-    this.verify = false,
-    this.expiryDate,
+    this.grade,
   });
 
   /// JSON에서 User 객체 생성
@@ -55,10 +51,7 @@ class User {
       name: json['name'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       role: json['role'] as String,
-      verify: json['verify'] as bool? ?? false,
-      expiryDate: json['expiryDate'] != null
-          ? DateTime.parse(json['expiryDate'] as String)
-          : null,
+      grade: json['grade'] as String?,
     );
   }
 
@@ -73,8 +66,7 @@ class User {
       'name': name,
       'created_at': createdAt.toIso8601String(),
       'role': role,
-      'verify': verify,
-      if (expiryDate != null) 'expiryDate': expiryDate!.toIso8601String(),
+      if (grade != null) 'grade': grade,
     };
   }
 
@@ -88,8 +80,7 @@ class User {
     String? name,
     DateTime? createdAt,
     String? role,
-    bool? verify,
-    DateTime? expiryDate,
+    String? grade,
   }) {
     return User(
       id: id ?? this.id,
@@ -100,8 +91,7 @@ class User {
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
       role: role ?? this.role,
-      verify: verify ?? this.verify,
-      expiryDate: expiryDate ?? this.expiryDate,
+      grade: grade ?? this.grade,
     );
   }
 
@@ -117,25 +107,7 @@ class User {
 
   @override
   String toString() {
-    return 'User{id: $id, name: $name, email: $email, role: $role, verify: $verify}';
-  }
-
-  /// 이메일 인증 완료 여부
-  bool get isVerified => verify;
-
-  /// 이메일 인증 대기 중
-  bool get isPendingVerification => !verify;
-
-  /// 인증 토큰 만료 여부 확인
-  bool get isTokenExpired {
-    if (expiryDate == null) return false;
-    return DateTime.now().isAfter(expiryDate!);
-  }
-
-  /// 인증 토큰 유효 여부
-  bool get isTokenValid {
-    if (expiryDate == null) return false;
-    return DateTime.now().isBefore(expiryDate!);
+    return 'User{id: $id, name: $name, email: $email, role: $role, grade: $grade}';
   }
 
   /// 관리자 권한 여부
