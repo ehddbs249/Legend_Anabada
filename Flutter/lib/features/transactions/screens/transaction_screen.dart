@@ -536,13 +536,45 @@ class _TransactionDetailSheet extends StatelessWidget {
             child: const Text('아니오'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
-              // TODO: 거래 취소 로직 구현
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('거래 취소 기능은 준비 중입니다')),
-              );
+
+              // 거래 취소 실행
+              final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+              final success = await transactionProvider.cancelTransaction(transaction.id);
+
+              if (success) {
+                // 성공: 데이터 새로고침
+                if (authProvider.currentUser != null) {
+                  final userId = authProvider.currentUser!.id;
+                  await Future.wait([
+                    transactionProvider.fetchMyLendingTransactions(userId),
+                    transactionProvider.fetchMyBorrowingTransactions(userId),
+                    transactionProvider.fetchActiveTransactions(userId),
+                  ]);
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('거래가 취소되었습니다. 포인트가 반환되었습니다.'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(transactionProvider.errorMessage ?? '거래 취소 중 오류가 발생했습니다'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
