@@ -19,6 +19,9 @@ class Transaction {
   /// 거래 일시 ← trans_date
   final DateTime transDate;
 
+  /// 책 포인트 가격 (book 테이블에서 조인) ← book.point_price
+  final int pointPrice;
+
   const Transaction({
     required this.id,
     required this.bookId,
@@ -26,10 +29,17 @@ class Transaction {
     this.borrowerId,
     required this.transStatus,
     required this.transDate,
+    this.pointPrice = 0,
   });
 
   /// JSON에서 Transaction 객체 생성
   factory Transaction.fromJson(Map<String, dynamic> json) {
+    // book 정보가 조인되어 있으면 가져오기
+    int pointPrice = 0;
+    if (json['book'] != null && json['book'] is Map) {
+      pointPrice = json['book']['point_price'] as int? ?? 0;
+    }
+
     return Transaction(
       id: json['trans_id'] as String,
       bookId: json['book_id'] as String,
@@ -37,6 +47,7 @@ class Transaction {
       borrowerId: json['borrower_id'] as String?,
       transStatus: json['trans_status'] as String,
       transDate: DateTime.parse(json['trans_date'] as String),
+      pointPrice: pointPrice,
     );
   }
 
@@ -60,6 +71,7 @@ class Transaction {
     String? borrowerId,
     String? transStatus,
     DateTime? transDate,
+    int? pointPrice,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -68,6 +80,7 @@ class Transaction {
       borrowerId: borrowerId ?? this.borrowerId,
       transStatus: transStatus ?? this.transStatus,
       transDate: transDate ?? this.transDate,
+      pointPrice: pointPrice ?? this.pointPrice,
     );
   }
 

@@ -323,7 +323,7 @@ class _TransactionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '포인트 미정', // pointsTransferred 필드 없음
+                        '${transaction.pointPrice} P',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: transactionColor,
                               fontWeight: FontWeight.bold,
