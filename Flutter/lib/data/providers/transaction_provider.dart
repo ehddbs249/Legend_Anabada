@@ -120,42 +120,52 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// 거래 생성 (책 대여 요청)
-  Future<bool> createTransaction({
+  /// 거래 생성 (책 대여 요청) - PostgreSQL 함수 호출
+  Future<Map<String, dynamic>> createTransaction({
     required String bookId,
     required String borrowerId,
-    required int rentalDays,
-    String? notes,
   }) async {
     try {
       _setLoading(true);
       _clearError();
 
-      final transactionData = {
-        'book_id': bookId,
-        'borrower_id': borrowerId,
-        'rental_days': rentalDays,
-        'trans_status': 'pending',
-        'trans_date': DateTime.now().toIso8601String(),
-      };
-
+      // PostgreSQL 함수 호출
       final response = await Supabase.instance.client
-          .from('book_transaction')
-          .insert(transactionData)
-          .select()
-          .single();
-
-      final transaction = Transaction.fromJson(response);
-      _transactions.add(transaction);
-      _activeTransactions.add(transaction);
+          .rpc('create_book_transaction', params: {
+            'p_book_id': bookId,
+            'p_borrower_id': borrowerId,
+          });
 
       _setLoading(false);
-      notifyListeners();
-      return true;
+
+      if (response['success'] == true) {
+        // 성공 시 거래 목록 갱신
+        await fetchActiveTransactions(borrowerId);
+        notifyListeners();
+
+        return {
+          'success': true,
+          'message': response['message'],
+          'trans_id': response['trans_id'],
+          'point_spent': response['point_spent'],
+        };
+      } else {
+        // 실패 시 에러 메시지 설정
+        _setError(response['message']);
+        return {
+          'success': false,
+          'message': response['message'],
+          'required': response['required'],
+          'current': response['current'],
+        };
+      }
     } catch (e) {
       _setError('거래 생성 중 오류가 발생했습니다: ${e.toString()}');
       _setLoading(false);
-      return false;
+      return {
+        'success': false,
+        'message': '거래 생성 중 오류가 발생했습니다: ${e.toString()}',
+      };
     }
   }
 
