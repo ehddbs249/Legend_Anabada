@@ -22,6 +22,15 @@ class Transaction {
   /// 책 포인트 가격 (book 테이블에서 조인) ← book.point_price
   final int pointPrice;
 
+  /// 책 제목 (book 테이블에서 조인) ← book.title
+  final String? bookTitle;
+
+  /// 대여자(판매자) 이름 (user 테이블에서 조인) ← user.name
+  final String? sellerName;
+
+  /// 차용자(구매자) 이름 (user 테이블에서 조인) ← borrower.name
+  final String? borrowerName;
+
   const Transaction({
     required this.id,
     required this.bookId,
@@ -30,14 +39,31 @@ class Transaction {
     required this.transStatus,
     required this.transDate,
     this.pointPrice = 0,
+    this.bookTitle,
+    this.sellerName,
+    this.borrowerName,
   });
 
   /// JSON에서 Transaction 객체 생성
   factory Transaction.fromJson(Map<String, dynamic> json) {
     // book 정보가 조인되어 있으면 가져오기
     int pointPrice = 0;
+    String? bookTitle;
     if (json['book'] != null && json['book'] is Map) {
       pointPrice = json['book']['point_price'] as int? ?? 0;
+      bookTitle = json['book']['title'] as String?;
+    }
+
+    // user (판매자) 정보가 조인되어 있으면 가져오기
+    String? sellerName;
+    if (json['user'] != null && json['user'] is Map) {
+      sellerName = json['user']['name'] as String?;
+    }
+
+    // borrower (구매자) 정보가 조인되어 있으면 가져오기
+    String? borrowerName;
+    if (json['borrower'] != null && json['borrower'] is Map) {
+      borrowerName = json['borrower']['name'] as String?;
     }
 
     return Transaction(
@@ -48,6 +74,9 @@ class Transaction {
       transStatus: json['trans_status'] as String,
       transDate: DateTime.parse(json['trans_date'] as String),
       pointPrice: pointPrice,
+      bookTitle: bookTitle,
+      sellerName: sellerName,
+      borrowerName: borrowerName,
     );
   }
 
@@ -72,6 +101,9 @@ class Transaction {
     String? transStatus,
     DateTime? transDate,
     int? pointPrice,
+    String? bookTitle,
+    String? sellerName,
+    String? borrowerName,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -81,6 +113,9 @@ class Transaction {
       transStatus: transStatus ?? this.transStatus,
       transDate: transDate ?? this.transDate,
       pointPrice: pointPrice ?? this.pointPrice,
+      bookTitle: bookTitle ?? this.bookTitle,
+      sellerName: sellerName ?? this.sellerName,
+      borrowerName: borrowerName ?? this.borrowerName,
     );
   }
 

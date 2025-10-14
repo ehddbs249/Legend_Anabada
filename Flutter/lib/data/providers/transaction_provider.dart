@@ -49,7 +49,12 @@ class TransactionProvider with ChangeNotifier {
 
       final response = await Supabase.instance.client
           .from('book_transaction')
-          .select('*, book(point_price)')
+          .select('''
+            *,
+            book(point_price, title),
+            user:user_id(name),
+            borrower:borrower_id(name)
+          ''')
           .eq('user_id', userId)
           .order('trans_date', ascending: false);
 
@@ -70,7 +75,12 @@ class TransactionProvider with ChangeNotifier {
 
       final response = await Supabase.instance.client
           .from('book_transaction')
-          .select('*, book(point_price)')
+          .select('''
+            *,
+            book(point_price, title),
+            user:user_id(name),
+            borrower:borrower_id(name)
+          ''')
           .eq('borrower_id', userId)
           .order('trans_date', ascending: false);
 
@@ -91,7 +101,12 @@ class TransactionProvider with ChangeNotifier {
 
       final response = await Supabase.instance.client
           .from('book_transaction')
-          .select('*, book(point_price)')
+          .select('''
+            *,
+            book(point_price, title),
+            user:user_id(name),
+            borrower:borrower_id(name)
+          ''')
           .or('user_id.eq.$userId,borrower_id.eq.$userId')
           .inFilter('trans_status', ['pending', 'active'])
           .order('trans_date', ascending: false);

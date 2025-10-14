@@ -291,7 +291,7 @@ class _TransactionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '교재 ID: ${transaction.bookId}', // bookTitle 필드 없음
+                          transaction.bookTitle ?? '교재 ID: ${transaction.bookId}',
                           style: Theme.of(context).textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -365,12 +365,10 @@ class _TransactionCard extends StatelessWidget {
 
   /// 거래 상대방 표시
   String _getTransactionPartner() {
-    // Transaction 모델에 lenderName, borrowerName 필드 없음
-    // userId와 borrowerId만 있음
     if (transaction.borrowerId != null) {
-      return '차용자 ID: ${transaction.borrowerId}';
+      return '구매자: ${transaction.borrowerName ?? transaction.borrowerId}';
     }
-    return '대여자 ID: ${transaction.userId}';
+    return '판매자: ${transaction.sellerName ?? transaction.userId}';
   }
 
   /// 상태 아이콘
@@ -470,17 +468,17 @@ class _TransactionDetailSheet extends StatelessWidget {
                         value: transaction.transStatusDisplayName,
                       ),
                       _DetailRow(
-                        label: '책 ID',
-                        value: transaction.bookId, // bookTitle 필드 없음
+                        label: '책 제목',
+                        value: transaction.bookTitle ?? transaction.bookId,
                       ),
                       _DetailRow(
-                        label: '대여자 ID',
-                        value: transaction.userId,
+                        label: '판매자',
+                        value: transaction.sellerName ?? transaction.userId,
                       ),
                       if (transaction.borrowerId != null)
                         _DetailRow(
-                          label: '차용자 ID',
-                          value: transaction.borrowerId!,
+                          label: '구매자',
+                          value: transaction.borrowerName ?? transaction.borrowerId!,
                         ),
                       // pointsTransferred, lockerId, notes 필드 없음
                       const SizedBox(height: 20),
