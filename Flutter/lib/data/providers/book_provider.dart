@@ -19,7 +19,8 @@ class BookProvider with ChangeNotifier {
 
   // 검색 필터
   String _searchQuery = '';
-  String? _selectedCondition; // condition grade: "excellent", "good", "fair", "poor"
+  String?
+  _selectedCondition; // condition grade: "excellent", "good", "fair", "poor"
   int? _minPrice;
   int? _maxPrice;
   String? _selectedCategory;
@@ -73,10 +74,15 @@ class BookProvider with ChangeNotifier {
         var queryBuilder = Supabase.instance.client
             .from('book')
             .select()
-            .or('title.ilike.%$query%,author.ilike.%$query%,publisher.ilike.%$query%');
+            .or(
+              'title.ilike.%$query%,author.ilike.%$query%,publisher.ilike.%$query%',
+            );
 
         if (_selectedCondition != null) {
-          queryBuilder = queryBuilder.eq('condition_grade', _selectedCondition!);
+          queryBuilder = queryBuilder.eq(
+            'condition_grade',
+            _selectedCondition!,
+          );
         }
         if (_minPrice != null) {
           queryBuilder = queryBuilder.gte('point_price', _minPrice!);
@@ -88,8 +94,13 @@ class BookProvider with ChangeNotifier {
           queryBuilder = queryBuilder.eq('category_id', _selectedCategory!);
         }
 
-        final response = await queryBuilder.order('registered_at', ascending: false);
-        _searchResults = (response as List).map((json) => Book.fromJson(json)).toList();
+        final response = await queryBuilder.order(
+          'registered_at',
+          ascending: false,
+        );
+        _searchResults = (response as List)
+            .map((json) => Book.fromJson(json))
+            .toList();
       }
 
       _setSearching(false);
@@ -106,14 +117,28 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      // TODO: 추천 알고리즘 구현 (현재는 최신 책 반환)
-      final response = await Supabase.instance.client
+      // TODO: 추천 알고리즘 구현 (현재는 거래되지 않은 최신 책 반환)
+      // 거래가 진행 중이거나 완료된 책을 제외 (trans_status가 null인 책만)
+      final allBooks = await Supabase.instance.client
           .from('book')
-          .select()
-          .limit(10)
+          .select('''
+            *,
+            book_transaction!book_transaction_book_id_fkey(trans_status)
+          ''')
           .order('registered_at', ascending: false);
 
-      _recommendedBooks = (response as List).map((json) => Book.fromJson(json)).toList();
+      // trans_status가 null인 책만 필터링 (거래 내역이 없는 책)
+      final availableBooks = (allBooks as List).where((json) {
+        final transactions = json['book_transaction'] as List?;
+        return transactions == null || transactions.isEmpty;
+      }).toList();
+
+      // 최대 10권까지만 추천
+      _recommendedBooks = availableBooks
+          .take(10)
+          .map((json) => Book.fromJson(json))
+          .toList();
+
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -152,7 +177,8 @@ class BookProvider with ChangeNotifier {
 
       String? imageUrl;
       if (imageFile != null) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${book.userId}.jpg';
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${book.userId}.jpg';
         imageUrl = await _supabaseService.uploadBookImage(imageFile, fileName);
       }
 
