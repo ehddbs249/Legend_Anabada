@@ -31,6 +31,9 @@ class Transaction {
   /// 차용자(구매자) 이름 (user 테이블에서 조인) ← borrower.name
   final String? borrowerName;
 
+  /// 책 이미지 URL (book 테이블에서 조인) ← book.img_url
+  final String? bookImgUrl;
+
   const Transaction({
     required this.id,
     required this.bookId,
@@ -42,6 +45,7 @@ class Transaction {
     this.bookTitle,
     this.sellerName,
     this.borrowerName,
+    this.bookImgUrl,
   });
 
   /// JSON에서 Transaction 객체 생성
@@ -49,9 +53,11 @@ class Transaction {
     // book 정보가 조인되어 있으면 가져오기
     int pointPrice = 0;
     String? bookTitle;
+    String? bookImgUrl;
     if (json['book'] != null && json['book'] is Map) {
       pointPrice = json['book']['point_price'] as int? ?? 0;
       bookTitle = json['book']['title'] as String?;
+      bookImgUrl = json['book']['img_url'] as String?;
     }
 
     // user (판매자) 정보가 조인되어 있으면 가져오기
@@ -77,6 +83,7 @@ class Transaction {
       bookTitle: bookTitle,
       sellerName: sellerName,
       borrowerName: borrowerName,
+      bookImgUrl: bookImgUrl,
     );
   }
 
@@ -104,6 +111,7 @@ class Transaction {
     String? bookTitle,
     String? sellerName,
     String? borrowerName,
+    String? bookImgUrl,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -116,6 +124,7 @@ class Transaction {
       bookTitle: bookTitle ?? this.bookTitle,
       sellerName: sellerName ?? this.sellerName,
       borrowerName: borrowerName ?? this.borrowerName,
+      bookImgUrl: bookImgUrl ?? this.bookImgUrl,
     );
   }
 

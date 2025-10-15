@@ -51,7 +51,7 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title),
+            book(point_price, title, img_url),
             user:user_id(name),
             borrower:borrower_id(name)
           ''')
@@ -77,7 +77,7 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title),
+            book(point_price, title, img_url),
             user:user_id(name),
             borrower:borrower_id(name)
           ''')
@@ -103,7 +103,7 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title),
+            book(point_price, title, img_url),
             user:user_id(name),
             borrower:borrower_id(name)
           ''')

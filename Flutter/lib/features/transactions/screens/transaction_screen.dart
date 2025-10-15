@@ -282,8 +282,7 @@ class _TransactionCard extends StatelessWidget {
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    // Transaction 모델에 bookImageUrl 필드 없음 (TODO: Book API 조인 필요)
-                    child: _buildBookIcon(),
+                    child: _buildBookImage(),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -354,13 +353,44 @@ class _TransactionCard extends StatelessWidget {
     );
   }
 
-  /// 책 아이콘 위젯
-  Widget _buildBookIcon() {
-    return Icon(
-      Icons.menu_book,
-      size: 32,
-      color: Colors.grey[400],
-    );
+  /// 책 이미지 위젯
+  Widget _buildBookImage() {
+    if (transaction.bookImgUrl != null && transaction.bookImgUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          transaction.bookImgUrl!,
+          width: 60,
+          height: 75,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.menu_book,
+              size: 32,
+              color: Colors.grey[400],
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      return Icon(
+        Icons.menu_book,
+        size: 32,
+        color: Colors.grey[400],
+      );
+    }
   }
 
   /// 거래 상대방 표시
