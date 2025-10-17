@@ -87,9 +87,7 @@ class _TransactionList extends StatelessWidget {
     return Consumer<TransactionProvider>(
       builder: (context, transactionProvider, child) {
         if (transactionProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (transactionProvider.errorMessage != null) {
@@ -97,11 +95,7 @@ class _TransactionList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: AppColors.error,
-                ),
+                Icon(Icons.error_outline, size: 64, color: AppColors.error),
                 const SizedBox(height: 16),
                 Text(
                   transactionProvider.errorMessage!,
@@ -118,7 +112,9 @@ class _TransactionList extends StatelessWidget {
                       final userId = authProvider.currentUser!.id;
                       await Future.wait([
                         transactionProvider.fetchMyLendingTransactions(userId),
-                        transactionProvider.fetchMyBorrowingTransactions(userId),
+                        transactionProvider.fetchMyBorrowingTransactions(
+                          userId,
+                        ),
                         transactionProvider.fetchActiveTransactions(userId),
                       ]);
                     }
@@ -130,7 +126,9 @@ class _TransactionList extends StatelessWidget {
           );
         }
 
-        List<Transaction> transactions = _getFilteredTransactions(transactionProvider);
+        List<Transaction> transactions = _getFilteredTransactions(
+          transactionProvider,
+        );
 
         if (transactions.isEmpty) {
           return Center(
@@ -146,8 +144,8 @@ class _TransactionList extends StatelessWidget {
                 Text(
                   _getEmptyMessage(),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -194,8 +192,9 @@ class _TransactionList extends StatelessWidget {
     switch (filterType) {
       case 'active':
         return allTransactions
-            .where((t) => t.transStatus == 'active' ||
-                         t.transStatus == 'pending')
+            .where(
+              (t) => t.transStatus == 'active' || t.transStatus == 'pending',
+            )
             .toList();
       case 'completed':
         return allTransactions
@@ -241,15 +240,13 @@ class _TransactionCard extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback onTap;
 
-  const _TransactionCard({
-    required this.transaction,
-    required this.onTap,
-  });
+  const _TransactionCard({required this.transaction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isActive = transaction.transStatus == 'active' ||
-                     transaction.transStatus == 'pending';
+    final isActive =
+        transaction.transStatus == 'active' ||
+        transaction.transStatus == 'pending';
     final transactionColor = _getTransactionColor(transaction.transStatus);
 
     return Card(
@@ -290,7 +287,8 @@ class _TransactionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          transaction.bookTitle ?? '교재 ID: ${transaction.bookId}',
+                          transaction.bookTitle ??
+                              '교재 ID: ${transaction.bookId}',
                           style: Theme.of(context).textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -324,18 +322,17 @@ class _TransactionCard extends StatelessWidget {
                       Text(
                         '${transaction.pointPrice} P',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: transactionColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: transactionColor,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       // remainingDays 필드 없음
                       if (isActive)
                         Text(
                           transaction.transStatusDisplayName,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                     ],
                   ),
@@ -364,11 +361,7 @@ class _TransactionCard extends StatelessWidget {
           height: 75,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            return Icon(
-              Icons.menu_book,
-              size: 32,
-              color: Colors.grey[400],
-            );
+            return Icon(Icons.menu_book, size: 32, color: Colors.grey[400]);
           },
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -376,7 +369,7 @@ class _TransactionCard extends StatelessWidget {
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
                     ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
+                          loadingProgress.expectedTotalBytes!
                     : null,
                 strokeWidth: 2,
               ),
@@ -385,11 +378,7 @@ class _TransactionCard extends StatelessWidget {
         ),
       );
     } else {
-      return Icon(
-        Icons.menu_book,
-        size: 32,
-        color: Colors.grey[400],
-      );
+      return Icon(Icons.menu_book, size: 32, color: Colors.grey[400]);
     }
   }
 
@@ -478,10 +467,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                '거래 상세',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('거래 상세', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 20),
               Expanded(
                 child: SingleChildScrollView(
@@ -508,7 +494,9 @@ class _TransactionDetailSheet extends StatelessWidget {
                       if (transaction.borrowerId != null)
                         _DetailRow(
                           label: '구매자',
-                          value: transaction.borrowerName ?? transaction.borrowerId!,
+                          value:
+                              transaction.borrowerName ??
+                              transaction.borrowerId!,
                         ),
                       // pointsTransferred, lockerId, notes 필드 없음
                       const SizedBox(height: 20),
@@ -550,7 +538,7 @@ class _TransactionDetailSheet extends StatelessWidget {
   /// 날짜 시간 포맷
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} '
-           '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   /// 거래 취소 확인 다이얼로그
@@ -561,56 +549,81 @@ class _TransactionDetailSheet extends StatelessWidget {
         title: const Text('거래 취소'),
         content: const Text('정말로 이 거래를 취소하시겠습니까?\n취소된 거래는 되돌릴 수 없습니다.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('아니오'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
 
-              // 거래 취소 실행
-              final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    // 거래 취소 실행
+                    final transactionProvider =
+                        Provider.of<TransactionProvider>(
+                          context,
+                          listen: false,
+                        );
+                    final authProvider = Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    );
 
-              final success = await transactionProvider.cancelTransaction(transaction.id);
+                    final success = await transactionProvider.cancelTransaction(
+                      transaction.id,
+                    );
 
-              if (success) {
-                // 성공: 데이터 새로고침
-                if (authProvider.currentUser != null) {
-                  final userId = authProvider.currentUser!.id;
-                  await Future.wait([
-                    transactionProvider.fetchMyLendingTransactions(userId),
-                    transactionProvider.fetchMyBorrowingTransactions(userId),
-                    transactionProvider.fetchActiveTransactions(userId),
-                  ]);
-                }
+                    if (success) {
+                      // 성공: 데이터 새로고침
+                      if (authProvider.currentUser != null) {
+                        final userId = authProvider.currentUser!.id;
+                        await Future.wait([
+                          transactionProvider.fetchMyLendingTransactions(
+                            userId,
+                          ),
+                          transactionProvider.fetchMyBorrowingTransactions(
+                            userId,
+                          ),
+                          transactionProvider.fetchActiveTransactions(userId),
+                        ]);
+                      }
 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('거래가 취소되었습니다. 포인트가 반환되었습니다.'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
-              } else {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(transactionProvider.errorMessage ?? '거래 취소 중 오류가 발생했습니다'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('취소'),
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('거래가 취소되었습니다. 포인트가 반환되었습니다.'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              transactionProvider.errorMessage ??
+                                  '거래 취소 중 오류가 발생했습니다',
+                            ),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('거래 취소'),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('아니오'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -637,9 +650,9 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -683,10 +696,7 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -699,17 +709,17 @@ class _DetailRow extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
