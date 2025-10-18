@@ -37,6 +37,7 @@ class SupabaseService {
       final response = await client.auth.signUp(
         email: email,
         password: password,
+        emailRedirectTo: 'https://chiobject.github.io/Legend_anabada_auth_test/auth_success.html',
       );
       return response;
     } catch (e) {
@@ -110,13 +111,9 @@ class SupabaseService {
       final bytes = await imageFile.readAsBytes();
       final path = 'book-images/$fileName';
 
-      await client.storage
-          .from('book-images')
-          .uploadBinary(path, bytes);
+      await client.storage.from('book-images').uploadBinary(path, bytes);
 
-      return client.storage
-          .from('book-images')
-          .getPublicUrl(path);
+      return client.storage.from('book-images').getPublicUrl(path);
     } catch (e) {
       throw Exception('이미지 업로드 실패: ${e.toString()}');
     }
@@ -129,13 +126,9 @@ class SupabaseService {
       final extension = imageFile.name.split('.').last;
       final path = 'profile-images/$userId.$extension';
 
-      await client.storage
-          .from('profile-images')
-          .uploadBinary(path, bytes);
+      await client.storage.from('profile-images').uploadBinary(path, bytes);
 
-      return client.storage
-          .from('profile-images')
-          .getPublicUrl(path);
+      return client.storage.from('profile-images').getPublicUrl(path);
     } catch (e) {
       throw Exception('프로필 이미지 업로드 실패: ${e.toString()}');
     }
@@ -144,9 +137,7 @@ class SupabaseService {
   /// 이미지 삭제
   Future<void> deleteImage(String bucketName, String path) async {
     try {
-      await client.storage
-          .from(bucketName)
-          .remove([path]);
+      await client.storage.from(bucketName).remove([path]);
     } catch (e) {
       throw Exception('이미지 삭제 실패: ${e.toString()}');
     }
@@ -181,10 +172,13 @@ class SupabaseService {
   /// 알림 읽음 표시
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
-      await client.from('notifications').update({
-        'is_read': true,
-        'read_at': DateTime.now().toIso8601String(),
-      }).eq('id', notificationId);
+      await client
+          .from('notifications')
+          .update({
+            'is_read': true,
+            'read_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', notificationId);
     } catch (e) {
       throw Exception('알림 읽음 표시 실패: ${e.toString()}');
     }
@@ -193,10 +187,14 @@ class SupabaseService {
   /// 모든 알림 읽음 표시
   Future<void> markAllNotificationsAsRead(String userId) async {
     try {
-      await client.from('notifications').update({
-        'is_read': true,
-        'read_at': DateTime.now().toIso8601String(),
-      }).eq('user_id', userId).eq('is_read', false);
+      await client
+          .from('notifications')
+          .update({
+            'is_read': true,
+            'read_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', userId)
+          .eq('is_read', false);
     } catch (e) {
       throw Exception('모든 알림 읽음 표시 실패: ${e.toString()}');
     }
@@ -267,9 +265,7 @@ class SupabaseService {
     required Map<String, dynamic> updates,
   }) async {
     try {
-      await client.from('User').update({
-        ...updates,
-      }).eq('user_id', userId);
+      await client.from('User').update({...updates}).eq('user_id', userId);
     } catch (e) {
       throw Exception('사용자 정보 업데이트 실패: ${e.toString()}');
     }
@@ -278,16 +274,20 @@ class SupabaseService {
   /// 포인트 업데이트
   Future<void> updateUserPoints(String userId, int points) async {
     try {
-      await client.from('User').update({
-        'points': points,
-      }).eq('user_id', userId);
+      await client
+          .from('User')
+          .update({'points': points})
+          .eq('user_id', userId);
     } catch (e) {
       throw Exception('포인트 업데이트 실패: ${e.toString()}');
     }
   }
 
   /// RPC 함수 호출 (저장 프로시저)
-  Future<dynamic> callFunction(String functionName, {Map<String, dynamic>? params}) async {
+  Future<dynamic> callFunction(
+    String functionName, {
+    Map<String, dynamic>? params,
+  }) async {
     try {
       final response = await client.rpc(functionName, params: params);
       return response;
