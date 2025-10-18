@@ -9,6 +9,7 @@ import '../../features/transactions/screens/transaction_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/locker/screens/locker_screen.dart';
 import '../../features/locker/screens/locker_detail_screen.dart';
+import '../../features/ocr/screens/ocr_camera_screen.dart';
 import '../../screens/main_screen.dart';
 
 class AppRouter {
@@ -62,7 +63,17 @@ class AppRouter {
       GoRoute(
         path: '/register',
         name: 'register',
-        builder: (context, state) => const RegisterBookScreen(),
+        builder: (context, state) {
+          final ocrData = state.extra as Map<String, dynamic>?;
+          return RegisterBookScreen(ocrData: ocrData);
+        },
+      ),
+
+      // OCR 촬영 화면 (독립적인 화면)
+      GoRoute(
+        path: '/ocr-camera',
+        name: 'ocr-camera',
+        builder: (context, state) => const OcrCameraScreen(),
       ),
 
       // 사물함 관리 화면
@@ -133,6 +144,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String search = '/search';
   static const String register = '/register';
+  static const String ocrCamera = '/ocr-camera';
   static const String transactions = '/transactions';
   static const String profile = '/profile';
   static const String locker = '/locker';

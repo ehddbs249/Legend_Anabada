@@ -342,30 +342,44 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildQuickActionCard(
-            context,
-            '교재 등록',
-            '내 교재를 공유하고\n포인트를 받으세요',
-            Icons.add_circle_outline,
-            AppColors.primarySoft,
-            AppColors.primary,
-            () => context.go('/register'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                '교재 등록',
+                '내 교재를 공유하고\n포인트를 받으세요',
+                Icons.add_circle_outline,
+                AppColors.primarySoft,
+                AppColors.primary,
+                () => context.go('/register'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                '교재 찾기',
+                '필요한 교재를\n쉽게 찾아보세요',
+                Icons.search_rounded,
+                AppColors.secondarySoft,
+                AppColors.secondary,
+                () => context.go('/search'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildQuickActionCard(
-            context,
-            '교재 찾기',
-            '필요한 교재를\n쉽게 찾아보세요',
-            Icons.search_rounded,
-            AppColors.secondarySoft,
-            AppColors.secondary,
-            () => context.go('/search'),
-          ),
+        const SizedBox(height: 16),
+        _buildQuickActionCard(
+          context,
+          'OCR 촬영 (임시)',
+          '카메라로 교재를 촬영하여\n자동으로 정보를 추출하세요',
+          Icons.camera_alt_rounded,
+          const Color(0xFFFFF3E0),
+          const Color(0xFFFF9800),
+          () => context.go('/ocr-camera'),
         ),
       ],
     );

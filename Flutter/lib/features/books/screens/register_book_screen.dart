@@ -12,7 +12,9 @@ import '../../../data/providers/category_provider.dart';
 import '../../../data/models/book.dart';
 
 class RegisterBookScreen extends StatefulWidget {
-  const RegisterBookScreen({super.key});
+  final Map<String, dynamic>? ocrData;
+
+  const RegisterBookScreen({super.key, this.ocrData});
 
   @override
   State<RegisterBookScreen> createState() => _RegisterBookScreenState();
@@ -43,6 +45,19 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   void initState() {
     super.initState();
     _suggestedPoints = _conditionPoints[_selectedCondition] ?? 0;
+
+    // OCR 데이터가 있으면 자동으로 채우기
+    if (widget.ocrData != null) {
+      _titleController.text = widget.ocrData!['title'] ?? '';
+      _authorController.text = widget.ocrData!['author'] ?? '';
+      _publisherController.text = widget.ocrData!['publisher'] ?? '';
+
+      // OCR 촬영 이미지가 있으면 자동으로 추가
+      if (widget.ocrData!['capturedImage'] != null) {
+        final capturedImage = widget.ocrData!['capturedImage'] as XFile;
+        _images.add(capturedImage);
+      }
+    }
 
     // 카테고리 목록 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
