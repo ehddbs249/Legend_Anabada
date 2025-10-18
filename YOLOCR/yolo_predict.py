@@ -89,11 +89,11 @@ def predict_damage(image_path):
                     detected_tags.append(tag)
 
                 # 손상 정도 점수 (4단계)
-                if tag in ["ripped", "wet"]:
+                if tag in ["찢어짐", "젖음"]:
                     score = 3   # 최하
-                elif tag in ["stain", "folded"]:
+                elif tag in ["얼룩", "접힘"]:
                     score = 2   # 하
-                elif tag == "wear":
+                elif tag == "마모":
                     score = 1   # 중
                 else:
                     score = 0   # 상
