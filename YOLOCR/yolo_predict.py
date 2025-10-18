@@ -29,13 +29,13 @@ FINE_TUNED_CLASS_NAMES = [
 ]
 
 CLASS_TO_TAG = {
-    "back_ripped": "ripped", "front_ripped": "ripped", "side_ripped": "ripped",
-    "back_wear": "wear", "front_wear": "wear", "side_wear": "wear",
-    "front_folded": "folded", "stain": "stain", "wet": "wet"
+    "back_ripped": "찢어짐", "front_ripped": "찢어짐", "side_ripped": "찢어짐",
+    "back_wear": "마모", "front_wear": "마모", "side_wear": "마모",
+    "front_folded": "접힘", "stain": "얼룩", "wet": "젖음"
 }
 
 # 손상 단계 4단계
-DAMAGE_LEVELS = ["최상", "상", "중", "하"]
+DAMAGE_LEVELS = ["최상", "양호", "보통", "하급"]
 
 # -------------------------------
 # 손상 예측 함수
