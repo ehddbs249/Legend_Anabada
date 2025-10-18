@@ -25,23 +25,29 @@ class TextClassifier:
 
     def __init__(
         self,
-        title_region=(0, 0.4),
-        author_region=(0.4, 0.7),
-        publisher_region=(0.7, 1.0),
         min_confidence=0.5,
         use_bbox_size=True,
-        title_size_threshold=1.5,
-        large_text_boost=0.3
+        title_size_threshold=0.65,  # 큰 텍스트 기준 (0.7~1.0)
+        medium_size_threshold=0.31,  # 중간 크기 하한선 (0.31~0.69)
+        author_size_threshold=0.3,  # 작은 텍스트 상한선 (0~0.3)
+        proximity_threshold=100,  # 키워드 근처 거리 기준 (픽셀)
+        publisher_y_threshold=0.7,  # 출판사 Y축 하단 기준 (0.7~1.0)
+        publisher_x_left_threshold=0.3,  # 출판사 왼쪽 기준 (0~0.3)
+        publisher_x_right_threshold=0.7  # 출판사 오른쪽 기준 (0.7~1.0)
     ):
-        self.title_region = title_region
-        self.author_region = author_region
-        self.publisher_region = publisher_region
         self.min_confidence = min_confidence
 
         # bbox 크기 기반 분류 설정
         self.use_bbox_size = use_bbox_size
         self.title_size_threshold = title_size_threshold
-        self.large_text_boost = large_text_boost
+        self.medium_size_threshold = medium_size_threshold
+        self.author_size_threshold = author_size_threshold
+        self.proximity_threshold = proximity_threshold
+
+        # 출판사 위치 기준
+        self.publisher_y_threshold = publisher_y_threshold
+        self.publisher_x_left_threshold = publisher_x_left_threshold
+        self.publisher_x_right_threshold = publisher_x_right_threshold
 
         self.author_keywords = [
             '저자', '지은이', '글쓴이', '작가', '지음', '글',
@@ -83,81 +89,137 @@ class TextClassifier:
         for result in filtered_results:
             result['normalized_y'] = (result['center_y'] - min_y) / y_range
 
-        # bbox 크기 계산 및 정규화
+        # X축 정규화 (출판사 위치 판단용)
+        min_x = min(r['center_x'] for r in filtered_results)
+        max_x = max(r['center_x'] for r in filtered_results)
+        x_range = max_x - min_x if max_x > min_x else 1
+
+        for result in filtered_results:
+            result['normalized_x'] = (result['center_x'] - min_x) / x_range
+
+        # bbox 크기 계산 및 0-1 정규화
         if self.use_bbox_size:
             for result in filtered_results:
                 result['bbox_size'] = self._calculate_bbox_size(result['bbox'])
 
-            # 평균 bbox 크기 계산
-            avg_size = sum(r['bbox_size'] for r in filtered_results) / len(filtered_results)
+            # 최소/최대 bbox 크기 계산
+            min_size = min(r['bbox_size'] for r in filtered_results)
+            max_size = max(r['bbox_size'] for r in filtered_results)
+            size_range = max_size - min_size if max_size > min_size else 1.0
+
+            # 0-1로 정규화
             for result in filtered_results:
-                result['bbox_size_ratio'] = result['bbox_size'] / avg_size if avg_size > 0 else 1.0
+                result['bbox_size_ratio'] = (result['bbox_size'] - min_size) / size_range if size_range > 0 else 0.5
 
         # Y축 기준 정렬
         sorted_results = sorted(filtered_results, key=lambda x: x['normalized_y'])
 
-        # 분류
-        title_texts = []
-        author_texts = []
-        publisher_texts = []
+        # 1단계: 키워드가 있는 텍스트 찾기
+        keyword_results = {
+            'author': [],
+            'publisher': []
+        }
 
         for result in sorted_results:
-            norm_y = result['normalized_y']
             text = result['text']
             text_lower = text.lower()
 
-            # bbox 크기 기반 가중치
-            is_large_text = False
-            if self.use_bbox_size:
-                size_ratio = result.get('bbox_size_ratio', 1.0)
-                is_large_text = size_ratio >= self.title_size_threshold
-
-            # 키워드 기반 분류 (우선순위 1)
+            # 키워드 찾기
             if any(keyword in text for keyword in self.author_keywords):
-                classification = 'author'
-                author_texts.append(result)
+                keyword_results['author'].append(result)
+                result['has_keyword'] = True
+                result['keyword_type'] = 'author'
             elif any(keyword in text_lower for keyword in self.publisher_keywords):
-                classification = 'publisher'
-                publisher_texts.append(result)
-            # bbox 크기 기반 분류 (우선순위 2)
-            elif self.use_bbox_size and is_large_text:
-                # 큰 텍스트는 제목일 가능성이 높음
-                # 단, 위치가 중간~하단이면 위치 정보도 고려
-                if norm_y >= 0.5:  # 중간 이하에 있으면
-                    # 위치 기반으로 재분류
-                    if self.author_region[0] <= norm_y < self.author_region[1]:
-                        classification = 'author'
-                        author_texts.append(result)
-                    elif self.publisher_region[0] <= norm_y <= self.publisher_region[1]:
-                        classification = 'publisher'
-                        publisher_texts.append(result)
-                    else:
-                        classification = 'title'
-                        title_texts.append(result)
-                else:
-                    # 상단에 있는 큰 텍스트는 제목
-                    classification = 'title'
-                    title_texts.append(result)
-            # 위치 기반 분류 (우선순위 3)
-            elif self.title_region[0] <= norm_y < self.title_region[1]:
-                classification = 'title'
-                title_texts.append(result)
-            elif self.author_region[0] <= norm_y < self.author_region[1]:
-                classification = 'author'
-                author_texts.append(result)
-            elif self.publisher_region[0] <= norm_y <= self.publisher_region[1]:
-                classification = 'publisher'
-                publisher_texts.append(result)
+                keyword_results['publisher'].append(result)
+                result['has_keyword'] = True
+                result['keyword_type'] = 'publisher'
             else:
-                classification = 'title'
-                title_texts.append(result)
+                result['has_keyword'] = False
 
-            result['classification'] = classification
+        # 2단계: bbox 크기 분류 (0-1 정규화 기준)
+        for result in sorted_results:
+            size_ratio = result.get('bbox_size_ratio', 0.5)
+
+            # 큰 텍스트 (0.7~1.0) - 무조건 제목
+            if size_ratio >= self.title_size_threshold:
+                result['size_category'] = 'large'
+            # 중간 크기 (0.31~0.69) - 제외
+            elif size_ratio >= self.medium_size_threshold:
+                result['size_category'] = 'medium'
+            # 작은 텍스트 (0~0.3) - 저자
+            else:
+                result['size_category'] = 'small'
+
+        # 3단계: 키워드 우선 분류
+        title_texts = []
+        author_texts = []
+        publisher_texts = []
+        has_author_keyword = False
+
+        # 먼저 키워드가 있는지 확인
+        for result in sorted_results:
+            if result.get('keyword_type') == 'author':
+                has_author_keyword = True
+                break
+
+        for result in sorted_results:
+            # 중간 크기는 제외
+            if result.get('size_category') == 'medium':
+                result['classification'] = 'excluded'
+                continue
+
+            # 큰 텍스트는 무조건 제목
+            if result.get('size_category') == 'large':
+                result['classification'] = 'title'
+                title_texts.append(result)
+                continue
+
+            # 키워드가 있는 텍스트 처리
+            if result.get('has_keyword'):
+                keyword_type = result.get('keyword_type')
+                if keyword_type == 'author':
+                    result['classification'] = 'author'
+                    author_texts.append(result)
+
+                    # 근처 텍스트 찾기
+                    nearby = self._find_nearby_texts(result, sorted_results)
+                    for nearby_text in nearby:
+                        if not nearby_text.get('classification'):
+                            nearby_text['classification'] = 'author'
+                            author_texts.append(nearby_text)
+
+                elif keyword_type == 'publisher':
+                    # 키워드가 있으면 무조건 출판사
+                    result['classification'] = 'publisher'
+                    publisher_texts.append(result)
+
+                    # 근처 텍스트 찾기
+                    nearby = self._find_nearby_texts(result, sorted_results)
+                    for nearby_text in nearby:
+                        if not nearby_text.get('classification'):
+                            nearby_text['classification'] = 'publisher'
+                            publisher_texts.append(nearby_text)
+
+            # 출판사 위치 판단 (키워드 없어도 위치로 분류)
+            elif self._is_publisher_position(result):
+                if not result.get('classification'):
+                    result['classification'] = 'publisher'
+                    publisher_texts.append(result)
+
+            # 작은 텍스트 처리
+            elif result.get('size_category') == 'small':
+                # 저자 키워드가 있으면 작은 텍스트는 제외
+                if has_author_keyword:
+                    result['classification'] = 'excluded'
+                # 저자 키워드가 없으면 작은 텍스트는 저자로
+                else:
+                    result['classification'] = 'author'
+                    author_texts.append(result)
 
         # 텍스트 병합
-        title = self._merge_texts(title_texts)
-        author = self._merge_texts(author_texts)
-        publisher = self._merge_texts(publisher_texts)
+        title = self._merge_texts(title_texts, sort_by='position')  # Y축 위치 순서
+        author = self._merge_texts(author_texts, sort_by='confidence')  # 신뢰도 순서
+        publisher = self._merge_texts(publisher_texts, sort_by='confidence')  # 신뢰도 순서
 
         # 정제
         author = self._clean_author_text(author)
@@ -169,6 +231,72 @@ class TextClassifier:
             'publisher': publisher,
             'all_texts': sorted_results
         }
+
+    def _is_publisher_position(self, result):
+        """
+        출판사 위치인지 판단 (오른쪽 아래 또는 왼쪽 아래)
+
+        Args:
+            result: 텍스트 결과
+
+        Returns:
+            bool: 출판사 위치이면 True
+        """
+        norm_y = result.get('normalized_y', 0)
+        norm_x = result.get('normalized_x', 0.5)
+
+        # Y축: 하단 (0.7~1.0)
+        is_bottom = norm_y >= self.publisher_y_threshold
+
+        # X축: 왼쪽 (0~0.3) 또는 오른쪽 (0.7~1.0)
+        is_left = norm_x <= self.publisher_x_left_threshold
+        is_right = norm_x >= self.publisher_x_right_threshold
+
+        # 하단이면서 좌측 또는 우측
+        return is_bottom and (is_left or is_right)
+
+    def _find_nearby_texts(self, keyword_result, all_results):
+        """
+        키워드가 있는 텍스트 근처의 다른 텍스트들을 찾음
+
+        Args:
+            keyword_result: 키워드가 포함된 텍스트 결과
+            all_results: 모든 텍스트 결과 리스트
+
+        Returns:
+            list: 근처에 있는 텍스트들
+        """
+        nearby_texts = []
+        keyword_center_x = keyword_result['center_x']
+        keyword_center_y = keyword_result['center_y']
+
+        for result in all_results:
+            # 자기 자신은 제외
+            if result is keyword_result:
+                continue
+
+            # 이미 분류된 것은 제외
+            if result.get('classification'):
+                continue
+
+            # 중간 크기는 제외
+            if result.get('size_category') == 'medium':
+                continue
+
+            # 큰 텍스트는 제외 (제목이므로)
+            if result.get('size_category') == 'large':
+                continue
+
+            # 거리 계산
+            distance_x = abs(result['center_x'] - keyword_center_x)
+            distance_y = abs(result['center_y'] - keyword_center_y)
+            distance = (distance_x ** 2 + distance_y ** 2) ** 0.5
+
+            # 근처에 있으면 추가
+            if distance <= self.proximity_threshold:
+                nearby_texts.append(result)
+
+        return nearby_texts
 
     def _calculate_bbox_size(self, bbox):
         """
@@ -189,10 +317,28 @@ class TextClassifier:
 
         return width * height
 
-    def _merge_texts(self, text_list):
+    def _merge_texts(self, text_list, sort_by='confidence'):
+        """
+        텍스트 리스트를 병합
+
+        Args:
+            text_list: 텍스트 결과 리스트
+            sort_by: 정렬 기준 ('confidence', 'position')
+
+        Returns:
+            str: 병합된 텍스트
+        """
         if not text_list:
             return ''
-        sorted_texts = sorted(text_list, key=lambda x: x['confidence'], reverse=True)
+
+        # 정렬 기준에 따라 정렬
+        if sort_by == 'position':
+            # Y축 위치 순서로 정렬 (위에서 아래로)
+            sorted_texts = sorted(text_list, key=lambda x: x.get('center_y', 0))
+        else:
+            # 신뢰도 순서로 정렬 (높은 것부터)
+            sorted_texts = sorted(text_list, key=lambda x: x.get('confidence', 0), reverse=True)
+
         merged = ' '.join([t['text'] for t in sorted_texts])
         return merged.strip()
 
