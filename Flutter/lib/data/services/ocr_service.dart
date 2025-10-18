@@ -5,16 +5,19 @@ class OcrService {
   final Dio _dio = Dio();
 
   // TODO: 실제 OCR 서버 URL로 변경 필요
-  static const String _ocrServerUrl = 'https://your-ocr-server.com/api/ocr';
+  static const String _ocrServerUrl = 'http://192.168.0.13:8000/predict';
 
   /// 이미지에서 교재 정보 추출
   Future<Map<String, dynamic>> extractBookInfo(XFile imageFile) async {
     try {
+      // 캡처된 이미지 바이트 읽기 (웹/모바일 호환)
+      final bytes = await imageFile.readAsBytes();
+
       // FormData로 이미지 전송 준비
       final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.name,
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: imageFile.name.isNotEmpty ? imageFile.name : 'image.jpg',
         ),
       });
 
@@ -45,6 +48,8 @@ class OcrService {
           'title': data['title'] as String? ?? '',
           'author': data['author'] as String? ?? '',
           'publisher': data['publisher'] as String? ?? '',
+          'condition_status': data['condition_status'], // 책 상태 (최상/상/중/하)
+          'dmg_tag': data['dmg_tag'], // 결함 태그 리스트
         };
       } else {
         throw Exception('OCR 서버 응답 오류: ${response.statusCode}');
@@ -74,6 +79,8 @@ class OcrService {
       'title': '데이터베이스 개론',
       'author': '김연희',
       'publisher': '한빛아카데미',
+      'condition_status': '상', // 책 상태 (최상/상/중/하)
+      'dmg_tag': ['앞표지 구겨짐', '3페이지 낙서'], // 결함 태그 리스트
     };
 
     // success 필드 확인
@@ -87,6 +94,8 @@ class OcrService {
       'title': mockResponse['title'] as String? ?? '',
       'author': mockResponse['author'] as String? ?? '',
       'publisher': mockResponse['publisher'] as String? ?? '',
+      'condition_status': mockResponse['condition_status'], // 책 상태 (최상/상/중/하)
+      'dmg_tag': mockResponse['dmg_tag'], // 결함 태그 리스트
     };
   }
 }
