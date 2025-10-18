@@ -52,27 +52,12 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       _authorController.text = widget.ocrData!['author'] ?? '';
       _publisherController.text = widget.ocrData!['publisher'] ?? '';
 
-      // condition_status 값이 있으면 자동으로 상태 설정 (최상/상/중/하)
-      if (widget.ocrData!['condition_status'] != null) {
-        final conditionStatus = widget.ocrData!['condition_status'] as String?;
+      if (widget.ocrData!['condition_grade'] != null) {
+        final conditionStatus = widget.ocrData!['condition_grade'] as String?;
 
-        if (conditionStatus != null) {
-          switch (conditionStatus) {
-            case '최상':
-              _selectedCondition = '최상';
-              break;
-            case '상':
-              _selectedCondition = '양호';
-              break;
-            case '중':
-              _selectedCondition = '보통';
-              break;
-            case '하':
-              _selectedCondition = '하급';
-              break;
-            default:
-              _selectedCondition = '보통'; // 기본값
-          }
+        if (conditionStatus != null &&
+            _conditionPoints.containsKey(conditionStatus)) {
+          _selectedCondition = conditionStatus;
           _suggestedPoints = _conditionPoints[_selectedCondition] ?? 0;
         }
       }

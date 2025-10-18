@@ -27,8 +27,8 @@ class OcrService {
         data: formData,
         options: Options(
           headers: {'Content-Type': 'multipart/form-data'},
-          receiveTimeout: const Duration(seconds: 30),
-          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 60),
         ),
       );
 
@@ -48,7 +48,7 @@ class OcrService {
           'title': data['title'] as String? ?? '',
           'author': data['author'] as String? ?? '',
           'publisher': data['publisher'] as String? ?? '',
-          'condition_status': data['condition_status'], // 책 상태 (최상/상/중/하)
+          'condition_grade': data['condition_grade'], // 책 상태 (최상/상/중/하)
           'dmg_tag': data['dmg_tag'], // 결함 태그 리스트
         };
       } else {
