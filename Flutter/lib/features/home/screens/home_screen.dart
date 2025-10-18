@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_spacing.dart';
@@ -12,6 +13,7 @@ import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/transaction_provider.dart';
 import '../../../data/providers/point_provider.dart';
 import '../../../data/models/book.dart';
+import '../../../data/services/ocr_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -380,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Icons.camera_alt_rounded,
           const Color(0xFFFFF3E0),
           const Color(0xFFFF9800),
-          () => context.go('/ocr-camera'),
+          () => _showOcrSourceDialog(context),
         ),
       ],
     );
@@ -844,5 +846,96 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  /// OCR 소스 선택 다이얼로그
+  void _showOcrSourceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('OCR 방식 선택'),
+        content: const Text('어떤 방식으로 이미지를 제공하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go('/ocr-camera');
+            },
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.camera_alt),
+                SizedBox(width: 8),
+                Text('카메라 촬영'),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _pickImageForOcr();
+            },
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_library),
+                SizedBox(width: 8),
+                Text('사진 업로드'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 갤러리에서 이미지 선택 후 OCR 처리
+  Future<void> _pickImageForOcr() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        // OCR 처리
+        final OcrService ocrService = OcrService();
+
+        // 로딩 다이얼로그 표시
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        try {
+          final result = await ocrService.extractBookInfo(image);
+
+          // 로딩 다이얼로그 닫기
+          if (mounted) Navigator.of(context).pop();
+
+          // OCR 결과와 이미지를 등록 화면으로 전달
+          if (mounted) {
+            final dataToPass = {
+              ...result,
+              'capturedImage': image,
+            };
+            context.go('/register', extra: dataToPass);
+          }
+        } catch (e) {
+          // 로딩 다이얼로그 닫기
+          if (mounted) Navigator.of(context).pop();
+
+          // 에러 표시
+          if (mounted) {
+            _showSnackBar('OCR 처리 실패: ${e.toString()}');
+          }
+        }
+      }
+    } catch (e) {
+      _showSnackBar('이미지 선택 실패: ${e.toString()}');
+    }
   }
 }

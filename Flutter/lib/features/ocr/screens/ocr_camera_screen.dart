@@ -1,10 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
-import '../../../core/widgets/widgets.dart';
 import '../../../data/services/ocr_service.dart';
 
 class OcrCameraScreen extends StatefulWidget {
@@ -14,47 +13,118 @@ class OcrCameraScreen extends StatefulWidget {
   State<OcrCameraScreen> createState() => _OcrCameraScreenState();
 }
 
-class _OcrCameraScreenState extends State<OcrCameraScreen> {
-  final ImagePicker _picker = ImagePicker();
-  final OcrService _ocrService = OcrService();
-
+class _OcrCameraScreenState extends State<OcrCameraScreen>
+    with WidgetsBindingObserver {
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
+  bool _isCameraInitialized = false;
+  bool _isPhotoTaken = false;
   XFile? _capturedImage;
   bool _isProcessing = false;
-  Map<String, dynamic>? _ocrResult;
+  final OcrService _ocrService = OcrService();
 
   @override
   void initState() {
     super.initState();
-    // 화면이 로드되면 자동으로 갤러리에서 이미지 선택
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _pickImageFromGallery();
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _initializeCamera();
   }
 
-  /// 갤러리에서 이미지 선택
-  Future<void> _pickImageFromGallery() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
+    super.dispose();
+  }
 
-      if (image != null) {
-        setState(() {
-          _capturedImage = image;
-        });
-      } else {
-        // 사용자가 선택을 취소한 경우 이전 화면으로 돌아감
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final CameraController? cameraController = _cameraController;
+
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initializeCamera();
+    }
+  }
+
+  /// 카메라 초기화
+  Future<void> _initializeCamera() async {
+    try {
+      _cameras = await availableCameras();
+
+      if (_cameras == null || _cameras!.isEmpty) {
         if (mounted) {
+          _showErrorSnackBar('사용 가능한 카메라가 없습니다.');
           context.pop();
         }
+        return;
+      }
+
+      // 후면 카메라 선택 (없으면 첫 번째 카메라)
+      final camera = _cameras!.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => _cameras!.first,
+      );
+
+      _cameraController = CameraController(
+        camera,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+
+      await _cameraController!.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('이미지를 가져올 수 없습니다: $e');
+        _showErrorSnackBar('카메라를 초기화할 수 없습니다: $e');
         context.pop();
       }
     }
+  }
+
+  /// 사진 촬영
+  Future<void> _takePicture() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    try {
+      final XFile image = await _cameraController!.takePicture();
+
+      setState(() {
+        _capturedImage = image;
+        _isPhotoTaken = true;
+      });
+    } catch (e) {
+      _showErrorSnackBar('사진 촬영에 실패했습니다: $e');
+    }
+  }
+
+  /// 재촬영
+  Future<void> _retakePicture() async {
+    setState(() {
+      _capturedImage = null;
+      _isPhotoTaken = false;
+      _isCameraInitialized = false;
+    });
+
+    // 카메라 재초기화
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+    }
+
+    await _initializeCamera();
   }
 
   /// OCR 처리
@@ -67,15 +137,13 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
 
     try {
       // TODO: 실제 OCR 서버가 준비되면 extractBookInfo로 변경
-      // final result = await _ocrService.extractBookInfo(_capturedImage!);
-      final result = await _ocrService.extractBookInfoMock(_capturedImage!);
+      final result = await _ocrService.extractBookInfo(_capturedImage!);
+      // final result = await _ocrService.extractBookInfoMock(_capturedImage!);
 
       setState(() {
-        _ocrResult = result;
         _isProcessing = false;
       });
 
-      // 성공적으로 OCR 처리가 완료되면 결과를 보여주거나 교재 등록 화면으로 이동
       if (mounted) {
         _showResultDialog(result);
       }
@@ -121,10 +189,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
             onPressed: () {
               Navigator.of(context).pop();
               // OCR 결과와 촬영한 이미지를 함께 전달
-              final dataToPass = {
-                ...result,
-                'capturedImage': _capturedImage,
-              };
+              final dataToPass = {...result, 'capturedImage': _capturedImage};
               context.go('/register', extra: dataToPass);
             },
             child: const Text('등록하기'),
@@ -161,7 +226,6 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
 
   /// 에러 다이얼로그 표시
   void _showErrorDialog(String errorMessage) {
-    // "Exception: " 접두사 제거
     final message = errorMessage.replaceFirst('Exception: ', '');
 
     showDialog(
@@ -182,18 +246,15 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // 다이얼로그 닫기
-                    setState(() {
-                      _capturedImage = null;
-                    });
-                    _pickImageFromGallery(); // 갤러리 다시 열기
+                    Navigator.of(context).pop();
+                    _retakePicture();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: const Text(
-                    '다시 선택',
+                    '재촬영',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -202,8 +263,8 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // 다이얼로그 닫기
-                    context.go('/home'); // 홈으로 이동
+                    Navigator.of(context).pop();
+                    context.go('/home');
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -222,132 +283,169 @@ class _OcrCameraScreenState extends State<OcrCameraScreen> {
   /// 에러 스낵바 표시
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
+  }
+
+  /// 카메라 프리뷰 화면
+  Widget _buildCameraPreview() {
+    if (!_isCameraInitialized || _cameraController == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 카메라 프리뷰
+        CameraPreview(_cameraController!),
+
+        // 촬영 버튼
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: GestureDetector(
+              onTap: _takePicture,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.primary, width: 4),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 35,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 촬영된 사진 미리보기 화면
+  Widget _buildPhotoPreview() {
+    if (_capturedImage == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.divider, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: FutureBuilder<Uint8List>(
+                future: _capturedImage!.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Image.memory(snapshot.data!, fit: BoxFit.contain);
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            children: [
+              if (_isProcessing)
+                const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'OCR 처리 중...',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _retakePicture,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '재촬영',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _processOcr,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'OCR 처리',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBackground,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('교재 이미지 선택'),
-        backgroundColor: Colors.transparent,
+        title: Text(_isPhotoTaken ? '촬영 확인' : '책 표지 촬영'),
+        backgroundColor: Colors.black,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      body: _capturedImage == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.divider, width: 2),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: FutureBuilder<Uint8List>(
-                        future: _capturedImage!.readAsBytes(),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return Image.memory(
-                              snapshot.data!,
-                              fit: BoxFit.contain,
-                            );
-                          }
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    children: [
-                      if (_isProcessing)
-                        const Column(
-                          children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text(
-                              'OCR 처리 중...',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _capturedImage = null;
-                                  });
-                                  _pickImageFromGallery();
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  side: const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 2,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  '다시 선택',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _processOcr,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'OCR 처리',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      body: _isPhotoTaken ? _buildPhotoPreview() : _buildCameraPreview(),
     );
   }
 }

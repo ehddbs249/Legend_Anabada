@@ -52,6 +52,40 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       _authorController.text = widget.ocrData!['author'] ?? '';
       _publisherController.text = widget.ocrData!['publisher'] ?? '';
 
+      // condition_status 값이 있으면 자동으로 상태 설정 (최상/상/중/하)
+      if (widget.ocrData!['condition_status'] != null) {
+        final conditionStatus = widget.ocrData!['condition_status'] as String?;
+
+        if (conditionStatus != null) {
+          switch (conditionStatus) {
+            case '최상':
+              _selectedCondition = '최상';
+              break;
+            case '상':
+              _selectedCondition = '양호';
+              break;
+            case '중':
+              _selectedCondition = '보통';
+              break;
+            case '하':
+              _selectedCondition = '하급';
+              break;
+            default:
+              _selectedCondition = '보통'; // 기본값
+          }
+          _suggestedPoints = _conditionPoints[_selectedCondition] ?? 0;
+        }
+      }
+
+      // dmg_tag 리스트가 있으면 자동으로 손상 태그 설정
+      if (widget.ocrData!['dmg_tag'] != null) {
+        final dmgTagList = widget.ocrData!['dmg_tag'];
+        if (dmgTagList is List && dmgTagList.isNotEmpty) {
+          // 리스트를 쉼표로 구분된 문자열로 변환
+          _descriptionController.text = dmgTagList.join(', ');
+        }
+      }
+
       // OCR 촬영 이미지가 있으면 자동으로 추가
       if (widget.ocrData!['capturedImage'] != null) {
         final capturedImage = widget.ocrData!['capturedImage'] as XFile;
@@ -68,9 +102,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.registerBook),
-      ),
+      appBar: AppBar(title: const Text(AppStrings.registerBook)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -78,10 +110,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '교재 정보',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('교재 정보', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
@@ -141,7 +170,9 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                     items: categories.map((category) {
                       return DropdownMenuItem(
                         value: category.id,
-                        child: Text('${category.categoryName} (${category.classficationType == 'major' ? '전공' : '교양'})'),
+                        child: Text(
+                          '${category.categoryName} (${category.classficationType == 'major' ? '전공' : '교양'})',
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -159,10 +190,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              Text(
-                '상태 평가',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('상태 평가', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -217,7 +245,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withValues(alpha:0.1),
+                        color: AppColors.primaryLight.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -229,9 +257,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                           ),
                           Text(
                             '$_suggestedPoints P',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
@@ -244,10 +270,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                '사진 첨부',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+              Text('사진 첨부', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 16),
               SizedBox(
                 height: 120,
@@ -390,10 +413,14 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
         categoryId: _selectedCategoryId!, // 실제 카테고리 UUID 사용
         title: _titleController.text.trim(),
         author: _authorController.text.trim(),
-        publisher: _publisherController.text.trim().isNotEmpty ? _publisherController.text.trim() : null,
+        publisher: _publisherController.text.trim().isNotEmpty
+            ? _publisherController.text.trim()
+            : null,
         pointPrice: _suggestedPoints,
         conditionGrade: conditionGrade,
-        dmgTag: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        dmgTag: _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
         imgUrl: null, // 서버에서 이미지 업로드 후 URL 생성
         registeredAt: DateTime.now(),
       );
@@ -426,9 +453,9 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
   /// 스낵바 표시
   void _showSnackBar(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -465,10 +492,7 @@ class _AddPhotoButton extends StatelessWidget {
           children: [
             Icon(Icons.add_photo_alternate, size: 32, color: Colors.grey[600]),
             const SizedBox(height: 4),
-            Text(
-              '사진 추가',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text('사진 추가', style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
@@ -480,10 +504,7 @@ class _PhotoItem extends StatelessWidget {
   final XFile image;
   final VoidCallback onRemove;
 
-  const _PhotoItem({
-    required this.image,
-    required this.onRemove,
-  });
+  const _PhotoItem({required this.image, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -514,9 +535,7 @@ class _PhotoItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.grey[300],
                 ),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: const Center(child: CircularProgressIndicator()),
               );
             }
           },
@@ -532,11 +551,7 @@ class _PhotoItem extends StatelessWidget {
                 color: Colors.red,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
             ),
           ),
         ),
