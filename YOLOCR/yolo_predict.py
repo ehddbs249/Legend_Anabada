@@ -29,13 +29,13 @@ FINE_TUNED_CLASS_NAMES = [
 ]
 
 CLASS_TO_TAG = {
-    "back_ripped": "ripped", "front_ripped": "ripped", "side_ripped": "ripped",
-    "back_wear": "wear", "front_wear": "wear", "side_wear": "wear",
-    "front_folded": "folded", "stain": "stain", "wet": "wet"
+    "back_ripped": "찢어짐", "front_ripped": "찢어짐", "side_ripped": "찢어짐",
+    "back_wear": "마모", "front_wear": "마모", "side_wear": "마모",
+    "front_folded": "접힘", "stain": "얼룩", "wet": "젖음"
 }
 
 # 손상 단계 4단계
-DAMAGE_LEVELS = ["최상", "상", "중", "하"]
+DAMAGE_LEVELS = ["최상", "양호", "보통", "하급"]
 
 # -------------------------------
 # 손상 예측 함수
@@ -89,11 +89,11 @@ def predict_damage(image_path):
                     detected_tags.append(tag)
 
                 # 손상 정도 점수 (4단계)
-                if tag in ["ripped", "wet"]:
+                if tag in ["찢어짐", "젖음"]:
                     score = 3   # 최하
-                elif tag in ["stain", "folded"]:
+                elif tag in ["얼룩", "접힘"]:
                     score = 2   # 하
-                elif tag == "wear":
+                elif tag == "마모":
                     score = 1   # 중
                 else:
                     score = 0   # 상
