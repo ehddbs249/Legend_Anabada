@@ -1,11 +1,11 @@
 /// 사용자 포인트 잔액 데이터 모델
-/// Spring Boot Entity: UserPointBalance (user_id, point_total, total_earned, total_spent)
+/// Spring Boot Entity: UserPointBalance (user_id, total_point, total_earned, total_spent)
 /// User와 1:1 관계
 class UserPointBalance {
   /// 사용자 ID (UUID, PK이자 FK) ← user_id
   final String userId;
 
-  /// 총 포인트 잔액 ← point_total
+  /// 총 포인트 잔액 ← total_point
   final int pointTotal;
 
   /// 총 획득 포인트 ← total_earned
@@ -25,7 +25,7 @@ class UserPointBalance {
   factory UserPointBalance.fromJson(Map<String, dynamic> json) {
     return UserPointBalance(
       userId: json['user_id'] as String,
-      pointTotal: json['point_total'] as int? ?? 0,
+      pointTotal: json['total_point'] as int? ?? 0,
       totalEarned: json['total_earned'] as int? ?? 0,
       totalSpent: json['total_spent'] as int? ?? 0,
     );
@@ -35,7 +35,7 @@ class UserPointBalance {
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
-      'point_total': pointTotal,
+      'total_point': pointTotal,
       'total_earned': totalEarned,
       'total_spent': totalSpent,
     };

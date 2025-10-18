@@ -11,6 +11,7 @@ import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/transaction_provider.dart';
 import '../../../data/providers/point_provider.dart';
+import '../../../data/models/book.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,58 +62,84 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: _buildAppBar(context),
-      body: Consumer4<AuthProvider, BookProvider, TransactionProvider, PointProvider>(
-        builder: (context, authProvider, bookProvider, transactionProvider, pointProvider, child) {
-          return RefreshIndicator(
-            onRefresh: _onRefresh,
-            color: AppColors.primary,
-            backgroundColor: Colors.white,
-            strokeWidth: 2.5,
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // 웰컴 섹션과 포인트 카드
-                SliverToBoxAdapter(
-                  child: ResponsivePadding(
-                    child: Column(
-                      children: [
-                        AnimatedSlideUp(
-                          delay: Duration.zero,
-                          child: _buildWelcomeCard(context, authProvider),
-                        ),
-                        const SizedBox(height: AppSpacing.sectionSpacing),
-                        AnimatedSlideUp(
-                          delay: const Duration(milliseconds: 100),
-                          child: _buildQuickActions(context),
-                        ),
-                        const SizedBox(height: AppSpacing.sectionSpacing),
-                        AnimatedSlideUp(
-                          delay: const Duration(milliseconds: 200),
-                          child: _buildActiveTransactions(context, transactionProvider),
-                        ),
-                        const SizedBox(height: AppSpacing.xxxl),
-                        AnimatedSlideUp(
-                          delay: const Duration(milliseconds: 300),
-                          child: _buildSectionHeader(
-                            context,
-                            '추천 교재',
-                            '모두 보기',
-                            () => context.go('/search'),
+      body:
+          Consumer4<
+            AuthProvider,
+            BookProvider,
+            TransactionProvider,
+            PointProvider
+          >(
+            builder:
+                (
+                  context,
+                  authProvider,
+                  bookProvider,
+                  transactionProvider,
+                  pointProvider,
+                  child,
+                ) {
+                  return RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    color: AppColors.primary,
+                    backgroundColor: Colors.white,
+                    strokeWidth: 2.5,
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        // 웰컴 섹션과 포인트 카드
+                        SliverToBoxAdapter(
+                          child: ResponsivePadding(
+                            child: Column(
+                              children: [
+                                AnimatedSlideUp(
+                                  delay: Duration.zero,
+                                  child: _buildWelcomeCard(
+                                    context,
+                                    authProvider,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: AppSpacing.sectionSpacing,
+                                ),
+                                AnimatedSlideUp(
+                                  delay: const Duration(milliseconds: 100),
+                                  child: _buildQuickActions(context),
+                                ),
+                                const SizedBox(
+                                  height: AppSpacing.sectionSpacing,
+                                ),
+                                AnimatedSlideUp(
+                                  delay: const Duration(milliseconds: 200),
+                                  child: _buildActiveTransactions(
+                                    context,
+                                    transactionProvider,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xxxl),
+                                AnimatedSlideUp(
+                                  delay: const Duration(milliseconds: 300),
+                                  child: _buildSectionHeader(
+                                    context,
+                                    '추천 교재',
+                                    '모두 보기',
+                                    () => context.go('/search'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ),
+                        // 추천 교재 그리드
+                        _buildRecommendedBooksGrid(context, bookProvider),
+                        // 하단 패딩
+                        const SliverPadding(
+                          padding: EdgeInsets.only(bottom: 100),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                // 추천 교재 그리드
-                _buildRecommendedBooksGrid(context, bookProvider),
-                // 하단 패딩
-                const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-              ],
-            ),
-          );
-        },
-      ),
+                  );
+                },
+          ),
     );
   }
 
@@ -140,16 +167,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             AppStrings.appName,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
         ],
       ),
-      actions: [
-        _buildNotificationButton(context),
-        const SizedBox(width: 12),
-      ],
+      actions: [_buildNotificationButton(context), const SizedBox(width: 12)],
     );
   }
 
@@ -160,10 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.divider,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.divider, width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -221,7 +242,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       '$userName님, 안녕하세요! 👋',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                           ),
@@ -230,9 +252,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       '오늘도 지속가능한 교재 공유를\n함께해보세요',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            height: 1.4,
-                          ),
+                        color: Colors.white.withValues(alpha: 0.9),
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -259,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       '보유 포인트',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -274,14 +296,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 6),
                         Text(
                           userPoints.toString(),
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
                         Text(
                           ' P',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.9),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -293,7 +317,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 GestureDetector(
                   onTap: () => context.go('/transactions'),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -301,9 +328,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       '내역 보기',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -316,30 +343,44 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildQuickActionCard(
-            context,
-            '교재 등록',
-            '내 교재를 공유하고\n포인트를 받으세요',
-            Icons.add_circle_outline,
-            AppColors.primarySoft,
-            AppColors.primary,
-            () => context.go('/register'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                '교재 등록',
+                '내 교재를 공유하고\n포인트를 받으세요',
+                Icons.add_circle_outline,
+                AppColors.primarySoft,
+                AppColors.primary,
+                () => context.go('/register'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                '교재 찾기',
+                '필요한 교재를\n쉽게 찾아보세요',
+                Icons.search_rounded,
+                AppColors.secondarySoft,
+                AppColors.secondary,
+                () => context.go('/search'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildQuickActionCard(
-            context,
-            '교재 찾기',
-            '필요한 교재를\n쉽게 찾아보세요',
-            Icons.search_rounded,
-            AppColors.secondarySoft,
-            AppColors.secondary,
-            () => context.go('/search'),
-          ),
+        const SizedBox(height: 16),
+        _buildQuickActionCard(
+          context,
+          'OCR 촬영 (임시)',
+          '카메라로 교재를 촬영하여\n자동으로 정보를 추출하세요',
+          Icons.camera_alt_rounded,
+          const Color(0xFFFFF3E0),
+          const Color(0xFFFF9800),
+          () => context.go('/ocr-camera'),
         ),
       ],
     );
@@ -368,27 +409,23 @@ class _HomeScreenState extends State<HomeScreen> {
               color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: iconColor,
-            ),
+            child: Icon(icon, size: 24, color: iconColor),
           ),
           const SizedBox(height: 16),
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.3,
-                ),
+              color: AppColors.textSecondary,
+              height: 1.3,
+            ),
           ),
         ],
       ),
@@ -407,9 +444,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           title,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         TextButton(
           onPressed: onActionTap,
@@ -419,9 +456,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 actionText,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(width: 4),
               const Icon(
@@ -437,7 +474,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 진행 중인 거래 표시
-  Widget _buildActiveTransactions(BuildContext context, TransactionProvider transactionProvider) {
+  Widget _buildActiveTransactions(
+    BuildContext context,
+    TransactionProvider transactionProvider,
+  ) {
     final activeTransactions = transactionProvider.activeTransactions;
 
     if (activeTransactions.isEmpty) {
@@ -462,7 +502,9 @@ class _HomeScreenState extends State<HomeScreen> {
               final transaction = activeTransactions[index];
               return Container(
                 width: 280,
-                margin: EdgeInsets.only(right: index < activeTransactions.length - 1 ? 16 : 0),
+                margin: EdgeInsets.only(
+                  right: index < activeTransactions.length - 1 ? 16 : 0,
+                ),
                 child: _buildTransactionCard(context, transaction),
               );
             },
@@ -495,10 +537,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '책 ID: ${transaction.bookId}', // bookTitle 필드 없음
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  '책 제목: ${transaction.bookTitle ?? "책 제목 없음"}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -507,17 +549,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '차용자: ${transaction.borrowerId ?? "미정"}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            '구매자: ${transaction.borrowerName ?? "미정"}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '포인트 미정', // pointsTransferred 필드 없음
+                '가격: ${transaction.pointPrice ?? "미정"}',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
@@ -545,7 +587,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 추천 교재 그리드
-  Widget _buildRecommendedBooksGrid(BuildContext context, BookProvider bookProvider) {
+  Widget _buildRecommendedBooksGrid(
+    BuildContext context,
+    BookProvider bookProvider,
+  ) {
     final recommendedBooks = bookProvider.recommendedBooks;
 
     if (bookProvider.isLoading) {
@@ -559,10 +604,8 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSpacing: AppSpacing.lg,
           ),
           delegate: SliverChildBuilderDelegate(
-            (context, index) => ShimmerLoading(
-              isLoading: true,
-              child: _buildShimmerCard(),
-            ),
+            (context, index) =>
+                ShimmerLoading(isLoading: true, child: _buildShimmerCard()),
             childCount: 6,
           ),
         ),
@@ -589,26 +632,20 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisSpacing: AppSpacing.lg,
           mainAxisSpacing: AppSpacing.lg,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final book = recommendedBooks[index];
-            return AnimatedSlideUp(
-              delay: Duration(milliseconds: 500 + (index * 50)),
-              child: BookDisplayCard(
-                title: book.title,
-                author: book.author,
-                condition: book.conditionGradeDisplayName,
-                price: '${book.pointPrice} P',
-                imageUrl: book.imgUrl,
-                onTap: () {
-                  // TODO: 책 상세 화면으로 이동
-                  // context.go('/book/${book.id}');
-                },
-              ),
-            );
-          },
-          childCount: recommendedBooks.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final book = recommendedBooks[index];
+          return AnimatedSlideUp(
+            delay: Duration(milliseconds: 500 + (index * 50)),
+            child: BookDisplayCard(
+              title: book.title,
+              author: book.author,
+              condition: book.conditionGradeDisplayName,
+              price: '${book.pointPrice} P',
+              imageUrl: book.imgUrl,
+              onTap: () => _showBookDetailDialog(book),
+            ),
+          );
+        }, childCount: recommendedBooks.length),
       ),
     );
   }
@@ -684,6 +721,128 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// 책 상세 정보 다이얼로그
+  void _showBookDetailDialog(Book book) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(book.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('저자: ${book.author}'),
+            Text('출판사: ${book.publisher ?? "미상"}'),
+            Text('상태: ${book.conditionGradeDisplayName}'),
+            Text('가격: ${book.pointPrice} P'),
+            if (book.dmgTag != null) ...[
+              const SizedBox(height: 8),
+              Text('손상 태그: ${book.dmgTag}'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('닫기'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _requestBookTransaction(book);
+            },
+            child: const Text('대여 요청'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 대여 요청 처리
+  Future<void> _requestBookTransaction(Book book) async {
+    final authProvider = context.read<AuthProvider>();
+    final transactionProvider = context.read<TransactionProvider>();
+
+    final currentUser = authProvider.currentUser;
+
+    if (currentUser == null) {
+      _showSnackBar('로그인이 필요합니다');
+      return;
+    }
+
+    // 로딩 다이얼로그 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    // 거래 생성 요청
+    final result = await transactionProvider.createTransaction(
+      bookId: book.id,
+      borrowerId: currentUser.id,
+    );
+
+    // 로딩 다이얼로그 닫기
+    if (mounted) Navigator.of(context).pop();
+
+    // 결과 표시
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      // 성공
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('거래 신청 완료'),
+          content: Text(
+            '${result['point_spent']}P가 차감되었습니다.\n'
+            '거래가 완료되면 판매자에게 포인트가 지급됩니다.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // 실패
+      final message = result['message'];
+      final required = result['required'];
+      final current = result['current'];
+
+      String detailMessage = message ?? '거래 신청에 실패했습니다';
+      if (required != null && current != null) {
+        detailMessage += '\n\n필요 포인트: ${required}P\n현재 포인트: ${current}P';
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('거래 신청 실패'),
+          content: Text(detailMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  /// 스낵바 표시
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }
