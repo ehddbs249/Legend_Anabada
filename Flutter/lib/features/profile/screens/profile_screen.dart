@@ -257,6 +257,21 @@ class _PointsCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          // 포인트 내역 보기 버튼
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go('/point-history'),
+              icon: const Icon(Icons.history, size: 18),
+              label: const Text('포인트 내역 보기'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -328,63 +343,30 @@ class _MenuSection extends StatelessWidget {
                   icon: Icons.book_outlined,
                   title: '등록한 교재',
                   subtitle: '$myBooksCount권',
-                  onTap: () {},
+                  onTap: () => context.go('/my-books'),
                 ),
                 const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.shopping_bag_outlined,
                   title: '구매한 교재',
                   subtitle: '$borrowedBooksCount권',
-                  onTap: () {},
+                  onTap: () => context.go('/borrowed-books'),
                 ),
                 const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.history,
                   title: '거래 내역',
-                  subtitle: '최근 30일',
-                  onTap: () {
-                    // TODO: 거래 내역 페이지로 이동
-                  },
-                ),
-                const Divider(height: 1),
-                _MenuItem(
-                  icon: Icons.favorite_outline,
-                  title: '관심 교재',
-                  subtitle: '0권', // TODO: 관심 교재 기능 구현
-                  onTap: () {},
+                  subtitle: '전체',
+                  onTap: () => context.go('/transactions'),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            '기타',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 12),
           PremiumCard(
             elevation: 2,
             child: Column(
               children: [
-                _MenuItem(
-                  icon: Icons.notifications_outlined,
-                  title: '알림 설정',
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                _MenuItem(
-                  icon: Icons.help_outline,
-                  title: '도움말',
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                _MenuItem(
-                  icon: Icons.info_outline,
-                  title: '앱 정보',
-                  subtitle: '버전 1.0.0',
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.logout,
                   title: '로그아웃',

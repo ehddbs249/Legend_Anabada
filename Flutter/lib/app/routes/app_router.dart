@@ -5,11 +5,16 @@ import '../../features/auth/screens/signup_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/books/screens/search_screen.dart';
 import '../../features/books/screens/register_book_screen.dart';
+import '../../features/books/screens/book_detail_screen.dart';
+import '../../features/books/screens/my_books_screen.dart';
 import '../../features/transactions/screens/transaction_screen.dart';
+import '../../features/transactions/screens/borrowed_books_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/profile/screens/point_history_screen.dart';
 import '../../features/locker/screens/locker_screen.dart';
 import '../../features/locker/screens/locker_detail_screen.dart';
 import '../../features/ocr/screens/ocr_camera_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 import '../../screens/main_screen.dart';
 
 class AppRouter {
@@ -69,6 +74,16 @@ class AppRouter {
         },
       ),
 
+      // 책 상세 화면
+      GoRoute(
+        path: '/book/:bookId',
+        name: 'bookDetail',
+        builder: (context, state) {
+          final bookId = state.pathParameters['bookId']!;
+          return BookDetailScreen(bookId: bookId);
+        },
+      ),
+
       // OCR 촬영 화면 (독립적인 화면)
       GoRoute(
         path: '/ocr-camera',
@@ -100,6 +115,34 @@ class AppRouter {
             pinCode: pinCode,
           );
         },
+      ),
+
+      // 알림 화면
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+
+      // 내 교재 관리 화면
+      GoRoute(
+        path: '/my-books',
+        name: 'myBooks',
+        builder: (context, state) => const MyBooksScreen(),
+      ),
+
+      // 포인트 내역 화면
+      GoRoute(
+        path: '/point-history',
+        name: 'pointHistory',
+        builder: (context, state) => const PointHistoryScreen(),
+      ),
+
+      // 구매한 교재 화면
+      GoRoute(
+        path: '/borrowed-books',
+        name: 'borrowedBooks',
+        builder: (context, state) => const BorrowedBooksScreen(),
       ),
     ],
 
@@ -149,6 +192,10 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String locker = '/locker';
 
+  /// 책 상세 화면 경로 생성
+  static String bookDetail(String bookId) => '/book/$bookId';
+
+  /// 사물함 상세 화면 경로 생성
   static String lockerDetail(String lockerId, {String? bookTitle, String? transactionId, String? pinCode}) {
     final uri = Uri(
       path: '/locker/$lockerId',

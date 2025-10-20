@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../data/providers/book_provider.dart';
-import '../../../data/providers/transaction_provider.dart';
-import '../../../data/providers/auth_provider.dart';
-import '../../../data/models/book.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -247,9 +245,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       // department: book.categoryId, // 카테고리 ID만 있음
                       isHorizontal: true,
                       onTap: () {
-                        // TODO: 책 상세 화면으로 이동
-                        // context.go('/book/${book.id}');
-                        _showBookDetailDialog(book);
+                        // 책 상세 화면으로 이동
+                        context.go('/book/${book.id}');
                       },
                     );
                   },
@@ -273,127 +270,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _performSearch();
   }
 
-  /// 책 상세 정보 다이얼로그 (임시)
-  void _showBookDetailDialog(Book book) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(book.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('저자: ${book.author}'),
-            Text('출판사: ${book.publisher ?? "미상"}'),
-            Text('상태: ${book.conditionGradeDisplayName}'),
-            Text('가격: ${book.pointPrice} P'),
-            if (book.dmgTag != null) ...[
-              const SizedBox(height: 8),
-              Text('손상 태그: ${book.dmgTag}'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('닫기'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _requestBookTransaction(book);
-            },
-            child: const Text('대여 요청'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 대여 요청 처리
-  Future<void> _requestBookTransaction(Book book) async {
-    final authProvider = context.read<AuthProvider>();
-    final transactionProvider = context.read<TransactionProvider>();
-
-    final currentUser = authProvider.currentUser;
-
-    if (currentUser == null) {
-      _showSnackBar('로그인이 필요합니다');
-      return;
-    }
-
-    // 로딩 다이얼로그 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    // 거래 생성 요청
-    final result = await transactionProvider.createTransaction(
-      bookId: book.id,
-      borrowerId: currentUser.id,
-    );
-
-    // 로딩 다이얼로그 닫기
-    if (mounted) Navigator.of(context).pop();
-
-    // 결과 표시
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      // 성공
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('거래 신청 완료'),
-          content: Text(
-            '${result['point_spent']}P가 차감되었습니다.\n'
-            '거래가 완료되면 판매자에게 포인트가 지급됩니다.'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // 실패
-      final message = result['message'];
-      final required = result['required'];
-      final current = result['current'];
-
-      String detailMessage = message ?? '거래 신청에 실패했습니다';
-      if (required != null && current != null) {
-        detailMessage += '\n\n필요 포인트: ${required}P\n현재 포인트: ${current}P';
-      }
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('거래 신청 실패'),
-          content: Text(detailMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  /// 스낵바 표시
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
 
   void _showDepartmentBottomSheet() {
     showModalBottomSheet(

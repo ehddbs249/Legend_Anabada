@@ -12,7 +12,6 @@ import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/transaction_provider.dart';
 import '../../../data/providers/point_provider.dart';
-import '../../../data/models/book.dart';
 import '../../../data/services/ocr_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -191,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () => context.go('/notifications'),
           borderRadius: BorderRadius.circular(12),
           child: Stack(
             children: [
@@ -644,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen> {
               condition: book.conditionGradeDisplayName,
               price: '${book.pointPrice} P',
               imageUrl: book.imgUrl,
-              onTap: () => _showBookDetailDialog(book),
+              onTap: () => context.go('/book/${book.id}'),
             ),
           );
         }, childCount: recommendedBooks.length),
@@ -726,127 +725,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 책 상세 정보 다이얼로그
-  void _showBookDetailDialog(Book book) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(book.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('저자: ${book.author}'),
-            Text('출판사: ${book.publisher ?? "미상"}'),
-            Text('상태: ${book.conditionGradeDisplayName}'),
-            Text('가격: ${book.pointPrice} P'),
-            if (book.dmgTag != null) ...[
-              const SizedBox(height: 8),
-              Text('손상 태그: ${book.dmgTag}'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('닫기'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _requestBookTransaction(book);
-            },
-            child: const Text('대여 요청'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 대여 요청 처리
-  Future<void> _requestBookTransaction(Book book) async {
-    final authProvider = context.read<AuthProvider>();
-    final transactionProvider = context.read<TransactionProvider>();
-
-    final currentUser = authProvider.currentUser;
-
-    if (currentUser == null) {
-      _showSnackBar('로그인이 필요합니다');
-      return;
-    }
-
-    // 로딩 다이얼로그 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    // 거래 생성 요청
-    final result = await transactionProvider.createTransaction(
-      bookId: book.id,
-      borrowerId: currentUser.id,
-    );
-
-    // 로딩 다이얼로그 닫기
-    if (mounted) Navigator.of(context).pop();
-
-    // 결과 표시
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      // 성공
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('거래 신청 완료'),
-          content: Text(
-            '${result['point_spent']}P가 차감되었습니다.\n'
-            '거래가 완료되면 판매자에게 포인트가 지급됩니다.'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // 실패
-      final message = result['message'];
-      final required = result['required'];
-      final current = result['current'];
-
-      String detailMessage = message ?? '거래 신청에 실패했습니다';
-      if (required != null && current != null) {
-        detailMessage += '\n\n필요 포인트: ${required}P\n현재 포인트: ${current}P';
-      }
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('거래 신청 실패'),
-          content: Text(detailMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  /// 스낵바 표시
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
 
   /// OCR 소스 선택 다이얼로그
   void _showOcrSourceDialog(BuildContext context) {
@@ -930,12 +808,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // 에러 표시
           if (mounted) {
-            _showSnackBar('OCR 처리 실패: ${e.toString()}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('OCR 처리 실패: ${e.toString()}')),
+            );
           }
         }
       }
     } catch (e) {
-      _showSnackBar('이미지 선택 실패: ${e.toString()}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이미지 선택 실패: ${e.toString()}')),
+        );
+      }
     }
   }
 }
