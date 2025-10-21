@@ -6,7 +6,48 @@ import 'app_colors.dart';
 /// 한국어에 최적화된 가독성과 위계 구조 제공
 class AppTypography {
   /// 기본 폰트 패밀리 (Noto Sans KR - 한국어 최적화)
-  static String get fontFamily => GoogleFonts.notoSans().fontFamily!;
+  /// 리눅스 환경에서는 시스템 폰트 사용
+  static String get fontFamily {
+    try {
+      final font = GoogleFonts.notoSans();
+      return font.fontFamily ?? 'sans-serif';
+    } catch (e) {
+      // Google Fonts 로드 실패 시 시스템 기본 폰트 사용
+      return 'sans-serif';
+    }
+  }
+
+  /// 안전한 TextStyle 생성 (Google Fonts 실패 시 기본 폰트 사용)
+  static TextStyle _safeGoogleFont({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    required double letterSpacing,
+    required double height,
+    TextDecoration? decoration,
+  }) {
+    try {
+      return GoogleFonts.notoSans(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    } catch (e) {
+      // Google Fonts 실패 시 기본 TextStyle 사용
+      return TextStyle(
+        fontFamily: 'sans-serif',
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    }
+  }
 
   /// 폰트 크기 시스템 (Type Scale)
   static const double fontSize10 = 10.0;
@@ -48,7 +89,7 @@ class AppTypography {
   static const double letterSpacingExtraWide = 0.3;
 
   /// Display 스타일 (대형 제목용)
-  static TextStyle get displayLarge => GoogleFonts.notoSans(
+  static TextStyle get displayLarge => _safeGoogleFont(
         fontSize: fontSize48,
         fontWeight: black,
         color: AppColors.textPrimary,
@@ -56,7 +97,7 @@ class AppTypography {
         height: lineHeightTight,
       );
 
-  static TextStyle get displayMedium => GoogleFonts.notoSans(
+  static TextStyle get displayMedium => _safeGoogleFont(
         fontSize: fontSize40,
         fontWeight: extraBold,
         color: AppColors.textPrimary,
@@ -64,7 +105,7 @@ class AppTypography {
         height: lineHeightTight,
       );
 
-  static TextStyle get displaySmall => GoogleFonts.notoSans(
+  static TextStyle get displaySmall => _safeGoogleFont(
         fontSize: fontSize36,
         fontWeight: bold,
         color: AppColors.textPrimary,
@@ -73,7 +114,7 @@ class AppTypography {
       );
 
   /// Headline 스타일 (섹션 제목용)
-  static TextStyle get headlineLarge => GoogleFonts.notoSans(
+  static TextStyle get headlineLarge => _safeGoogleFont(
         fontSize: fontSize32,
         fontWeight: bold,
         color: AppColors.textPrimary,
@@ -81,7 +122,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get headlineMedium => GoogleFonts.notoSans(
+  static TextStyle get headlineMedium => _safeGoogleFont(
         fontSize: fontSize28,
         fontWeight: bold,
         color: AppColors.textPrimary,
@@ -89,7 +130,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get headlineSmall => GoogleFonts.notoSans(
+  static TextStyle get headlineSmall => _safeGoogleFont(
         fontSize: fontSize24,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -98,7 +139,7 @@ class AppTypography {
       );
 
   /// Title 스타일 (컴포넌트 제목용)
-  static TextStyle get titleLarge => GoogleFonts.notoSans(
+  static TextStyle get titleLarge => _safeGoogleFont(
         fontSize: fontSize22,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -106,7 +147,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get titleMedium => GoogleFonts.notoSans(
+  static TextStyle get titleMedium => _safeGoogleFont(
         fontSize: fontSize20,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -114,7 +155,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get titleSmall => GoogleFonts.notoSans(
+  static TextStyle get titleSmall => _safeGoogleFont(
         fontSize: fontSize18,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -123,7 +164,7 @@ class AppTypography {
       );
 
   /// Body 스타일 (본문용)
-  static TextStyle get bodyLarge => GoogleFonts.notoSans(
+  static TextStyle get bodyLarge => _safeGoogleFont(
         fontSize: fontSize16,
         fontWeight: regular,
         color: AppColors.textPrimary,
@@ -131,7 +172,7 @@ class AppTypography {
         height: lineHeightRelaxed,
       );
 
-  static TextStyle get bodyMedium => GoogleFonts.notoSans(
+  static TextStyle get bodyMedium => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: regular,
         color: AppColors.textPrimary,
@@ -139,7 +180,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get bodySmall => GoogleFonts.notoSans(
+  static TextStyle get bodySmall => _safeGoogleFont(
         fontSize: fontSize12,
         fontWeight: regular,
         color: AppColors.textSecondary,
@@ -148,7 +189,7 @@ class AppTypography {
       );
 
   /// Label 스타일 (라벨, 버튼 텍스트용)
-  static TextStyle get labelLarge => GoogleFonts.notoSans(
+  static TextStyle get labelLarge => _safeGoogleFont(
         fontSize: fontSize16,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -156,7 +197,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get labelMedium => GoogleFonts.notoSans(
+  static TextStyle get labelMedium => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.textPrimary,
@@ -164,7 +205,7 @@ class AppTypography {
         height: lineHeightNormal,
       );
 
-  static TextStyle get labelSmall => GoogleFonts.notoSans(
+  static TextStyle get labelSmall => _safeGoogleFont(
         fontSize: fontSize12,
         fontWeight: medium,
         color: AppColors.textSecondary,
@@ -174,7 +215,7 @@ class AppTypography {
 
   /// 특수 용도 스타일
   /// 버튼 텍스트
-  static TextStyle get button => GoogleFonts.notoSans(
+  static TextStyle get button => _safeGoogleFont(
         fontSize: fontSize16,
         fontWeight: semiBold,
         color: Colors.white,
@@ -183,7 +224,7 @@ class AppTypography {
       );
 
   /// 캡션 (설명 텍스트)
-  static TextStyle get caption => GoogleFonts.notoSans(
+  static TextStyle get caption => _safeGoogleFont(
         fontSize: fontSize11,
         fontWeight: regular,
         color: AppColors.textTertiary,
@@ -192,7 +233,7 @@ class AppTypography {
       );
 
   /// 오버라인 (상단 라벨)
-  static TextStyle get overline => GoogleFonts.notoSans(
+  static TextStyle get overline => _safeGoogleFont(
         fontSize: fontSize10,
         fontWeight: medium,
         color: AppColors.textTertiary,
@@ -201,7 +242,7 @@ class AppTypography {
       );
 
   /// 가격 표시용 (강조)
-  static TextStyle get price => GoogleFonts.notoSans(
+  static TextStyle get price => _safeGoogleFont(
         fontSize: fontSize20,
         fontWeight: bold,
         color: AppColors.primary,
@@ -210,7 +251,7 @@ class AppTypography {
       );
 
   /// 포인트 표시용
-  static TextStyle get points => GoogleFonts.notoSans(
+  static TextStyle get points => _safeGoogleFont(
         fontSize: fontSize24,
         fontWeight: extraBold,
         color: AppColors.accent,
@@ -219,7 +260,7 @@ class AppTypography {
       );
 
   /// 에러 메시지
-  static TextStyle get error => GoogleFonts.notoSans(
+  static TextStyle get error => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.error,
@@ -228,7 +269,7 @@ class AppTypography {
       );
 
   /// 성공 메시지
-  static TextStyle get success => GoogleFonts.notoSans(
+  static TextStyle get success => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.success,
@@ -237,7 +278,7 @@ class AppTypography {
       );
 
   /// 경고 메시지
-  static TextStyle get warning => GoogleFonts.notoSans(
+  static TextStyle get warning => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.warning,
@@ -246,7 +287,7 @@ class AppTypography {
       );
 
   /// 정보 메시지
-  static TextStyle get info => GoogleFonts.notoSans(
+  static TextStyle get info => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.info,
@@ -255,7 +296,7 @@ class AppTypography {
       );
 
   /// 링크 텍스트
-  static TextStyle get link => GoogleFonts.notoSans(
+  static TextStyle get link => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.primary,
@@ -265,7 +306,7 @@ class AppTypography {
       );
 
   /// 플레이스홀더 텍스트
-  static TextStyle get placeholder => GoogleFonts.notoSans(
+  static TextStyle get placeholder => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: regular,
         color: AppColors.textTertiary,
@@ -274,7 +315,7 @@ class AppTypography {
       );
 
   /// 앱바 제목
-  static TextStyle get appBarTitle => GoogleFonts.notoSans(
+  static TextStyle get appBarTitle => _safeGoogleFont(
         fontSize: fontSize20,
         fontWeight: semiBold,
         color: AppColors.textPrimary,
@@ -283,7 +324,7 @@ class AppTypography {
       );
 
   /// 탭 라벨
-  static TextStyle get tabLabel => GoogleFonts.notoSans(
+  static TextStyle get tabLabel => _safeGoogleFont(
         fontSize: fontSize14,
         fontWeight: medium,
         color: AppColors.textPrimary,
@@ -292,7 +333,7 @@ class AppTypography {
       );
 
   /// 네비게이션 라벨
-  static TextStyle get navLabel => GoogleFonts.notoSans(
+  static TextStyle get navLabel => _safeGoogleFont(
         fontSize: fontSize11,
         fontWeight: medium,
         color: AppColors.textPrimary,
@@ -301,7 +342,7 @@ class AppTypography {
       );
 
   /// 칩 라벨
-  static TextStyle get chipLabel => GoogleFonts.notoSans(
+  static TextStyle get chipLabel => _safeGoogleFont(
         fontSize: fontSize12,
         fontWeight: medium,
         color: AppColors.textPrimary,
@@ -310,7 +351,7 @@ class AppTypography {
       );
 
   /// 배지 텍스트
-  static TextStyle get badge => GoogleFonts.notoSans(
+  static TextStyle get badge => _safeGoogleFont(
         fontSize: fontSize10,
         fontWeight: bold,
         color: Colors.white,
