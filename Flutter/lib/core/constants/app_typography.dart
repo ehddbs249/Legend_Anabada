@@ -17,7 +17,7 @@ class AppTypography {
     }
   }
 
-  /// 안전한 TextStyle 생성 (Google Fonts 실패 시 기본 폰트 사용)
+  /// 안전한 TextStyle 생성 (번들 폰트 우선, Google Fonts 폴백, 시스템 폰트 최종 폴백)
   static TextStyle _safeGoogleFont({
     required double fontSize,
     required FontWeight fontWeight,
@@ -27,25 +27,40 @@ class AppTypography {
     TextDecoration? decoration,
   }) {
     try {
-      return GoogleFonts.notoSans(
+      // 1순위: 번들된 Noto Sans KR 폰트 사용 (라즈베리파이 리눅스 환경 지원)
+      return TextStyle(
+        fontFamily: 'NotoSansKR',
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
         letterSpacing: letterSpacing,
         height: height,
         decoration: decoration,
+        fontFamilyFallback: const ['NotoSansKR', 'sans-serif', 'Arial'],
       );
     } catch (e) {
-      // Google Fonts 실패 시 기본 TextStyle 사용
-      return TextStyle(
-        fontFamily: 'sans-serif',
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: color,
-        letterSpacing: letterSpacing,
-        height: height,
-        decoration: decoration,
-      );
+      // 2순위: Google Fonts 시도
+      try {
+        return GoogleFonts.notoSans(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+          decoration: decoration,
+        );
+      } catch (e2) {
+        // 3순위: 시스템 기본 폰트 사용
+        return TextStyle(
+          fontFamily: 'sans-serif',
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+          decoration: decoration,
+        );
+      }
     }
   }
 
