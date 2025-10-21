@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/locker.dart';
 import '../../../data/providers/locker_provider.dart';
 import '../../../data/providers/auth_provider.dart';
 
@@ -357,8 +358,18 @@ class _LockerGrid extends StatelessWidget {
           );
         }
 
-        // 기본 위치로 2x2 그리드 생성 (추후 확장 가능)
-        final lockerGrid = lockerProvider.getLockerGrid('메인');
+        // lockerNum으로 2x2 그리드 생성
+        List<List<Locker?>> lockerGrid = List.generate(2, (index) => List.filled(2, null));
+        for (final locker in lockerProvider.lockers) {
+          if (locker.lockerNum != null) {
+            final num = locker.lockerNum! - 1;
+            if (num >= 0 && num < 4) {
+              final row = num ~/ 2;
+              final col = num % 2;
+              lockerGrid[row][col] = locker;
+            }
+          }
+        }
 
         return Container(
           padding: const EdgeInsets.all(16),

@@ -147,7 +147,7 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
                   }
 
                   return DropdownButtonFormField<String>(
-                    value: _selectedCategoryId,
+                    initialValue: _selectedCategoryId,
                     decoration: const InputDecoration(
                       labelText: '카테고리 *',
                       helperText: '교재 카테고리를 선택해주세요',

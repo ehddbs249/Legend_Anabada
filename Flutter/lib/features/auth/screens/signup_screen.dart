@@ -97,7 +97,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedDepartment,
+                  initialValue: _selectedDepartment,
                   decoration: const InputDecoration(
                     labelText: '학과 *',
                     prefixIcon: Icon(Icons.school_outlined),
@@ -122,7 +122,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedGrade,
+                  initialValue: _selectedGrade,
                   decoration: const InputDecoration(
                     labelText: '학년 *',
                     prefixIcon: Icon(Icons.grade_outlined),

@@ -1,12 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../services/supabase_service.dart';
-import '../services/api_service.dart';
 
 /// 인증 상태 관리 Provider
 class AuthProvider with ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
-  final ApiService _apiService = ApiService();
 
   User? _currentUser;
   bool _isLoading = false;

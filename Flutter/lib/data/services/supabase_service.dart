@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/notification.dart';
@@ -214,16 +215,16 @@ class SupabaseService {
     String role = 'user',
   }) async {
     try {
-      // 디버깅용 로그
-      print('=== createUserProfile 호출 ===');
-      print('userId: $userId');
-      print('email: $email');
-      print('password: $password');
-      print('name: $name');
-      print('studentNumber: $studentNumber');
-      print('department: $department');
-      print('grade: $grade');
-      print('role: $role');
+      // 디버깅용 로그 (프로덕션에서는 자동 무시됨)
+      debugPrint('=== createUserProfile 호출 ===');
+      debugPrint('userId: $userId');
+      debugPrint('email: $email');
+      debugPrint('password: $password');
+      debugPrint('name: $name');
+      debugPrint('studentNumber: $studentNumber');
+      debugPrint('department: $department');
+      debugPrint('grade: $grade');
+      debugPrint('role: $role');
 
       final data = {
         'user_id': userId,
@@ -237,7 +238,7 @@ class SupabaseService {
         'created_at': DateTime.now().toIso8601String(),
       };
 
-      print('Insert data: $data');
+      debugPrint('Insert data: $data');
 
       await client.from('User').insert(data);
     } catch (e) {
