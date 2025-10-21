@@ -20,7 +20,7 @@ class _TransactionScreenState extends State<TransactionScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this); // 3 -> 2로 변경 (취소 탭 제거)
 
     // 거래 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,7 +55,6 @@ class _TransactionScreenState extends State<TransactionScreen>
           tabs: const [
             Tab(text: '진행 중'),
             Tab(text: '완료'),
-            Tab(text: '취소'),
           ],
         ),
       ),
@@ -64,7 +63,6 @@ class _TransactionScreenState extends State<TransactionScreen>
         children: [
           _TransactionList(filterType: 'active'),
           _TransactionList(filterType: 'completed'),
-          _TransactionList(filterType: 'cancelled'),
         ],
       ),
     );
