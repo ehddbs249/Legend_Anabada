@@ -75,10 +75,74 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('로그인 중 오류가 발생했습니다: ${e.toString()}');
+      // Supabase 에러 메시지 파싱
+      final errorMessage = _parseAuthError(e.toString());
+      _setError(errorMessage);
       _setLoading(false);
       return false;
     }
+  }
+
+  /// Supabase 인증 에러 메시지 파싱
+  String _parseAuthError(String error) {
+    final lowerError = error.toLowerCase();
+
+    // Invalid login credentials
+    if (lowerError.contains('invalid login credentials') ||
+        lowerError.contains('invalid_credentials')) {
+      return '이메일 또는 비밀번호가 일치하지 않습니다.';
+    }
+
+    // Email not confirmed
+    if (lowerError.contains('email not confirmed') ||
+        lowerError.contains('email_not_confirmed')) {
+      return '이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.';
+    }
+
+    // User not found
+    if (lowerError.contains('user not found') ||
+        lowerError.contains('user_not_found')) {
+      return '등록되지 않은 이메일입니다.';
+    }
+
+    // Too many requests
+    if (lowerError.contains('too many requests') ||
+        lowerError.contains('rate limit')) {
+      return '너무 많은 시도를 하셨습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    // Network error
+    if (lowerError.contains('network') ||
+        lowerError.contains('connection') ||
+        lowerError.contains('timeout')) {
+      return '네트워크 연결을 확인해주세요.';
+    }
+
+    // Invalid email format
+    if (lowerError.contains('invalid email') ||
+        lowerError.contains('email format')) {
+      return '올바른 이메일 형식이 아닙니다.';
+    }
+
+    // Password too short
+    if (lowerError.contains('password') &&
+        (lowerError.contains('short') || lowerError.contains('length'))) {
+      return '비밀번호는 6자 이상이어야 합니다.';
+    }
+
+    // 기타 에러
+    if (lowerError.contains('exception:')) {
+      // "Exception: 로그인 실패: ..." 형식에서 실제 에러 메시지만 추출
+      final parts = error.split('로그인 실패:');
+      if (parts.length > 1) {
+        final actualError = parts[1].trim();
+        // 추출된 에러를 다시 파싱
+        return _parseAuthError(actualError);
+      }
+    }
+
+    // 알 수 없는 에러
+    return '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
 
   /// 회원가입
