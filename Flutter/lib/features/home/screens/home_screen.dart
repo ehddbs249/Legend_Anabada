@@ -356,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.add_circle_outline,
                 AppColors.primarySoft,
                 AppColors.primary,
-                () => context.go('/register'),
+                () => context.push('/register'),
               ),
             ),
             const SizedBox(width: 16),
@@ -643,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen> {
               condition: book.conditionGradeDisplayName,
               price: '${book.pointPrice} P',
               imageUrl: book.imgUrl,
-              onTap: () => context.go('/book/${book.id}'),
+              onTap: () => context.push('/book/${book.id}'),
             ),
           );
         }, childCount: recommendedBooks.length),
@@ -800,7 +800,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ...result,
               'capturedImage': image,
             };
-            context.go('/register', extra: dataToPass);
+            context.push('/register', extra: dataToPass);
           }
         } catch (e) {
           // 로딩 다이얼로그 닫기

@@ -246,7 +246,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       isHorizontal: true,
                       onTap: () {
                         // 책 상세 화면으로 이동
-                        context.go('/book/${book.id}');
+                        context.push('/book/${book.id}');
                       },
                     );
                   },

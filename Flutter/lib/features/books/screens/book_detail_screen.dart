@@ -225,13 +225,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5,
         decoration: const BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 핸들
@@ -295,7 +295,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               const SizedBox(height: AppSpacing.md),
               _buildInfoRow(Icons.grade_rounded, '학년', _seller!.grade!),
             ],
-            const Spacer(),
+            const SizedBox(height: AppSpacing.lg),
             // 닫기 버튼
             SizedBox(
               width: double.infinity,
@@ -342,7 +342,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.home);
+            }
+          },
         ),
         actions: [
           IconButton(

@@ -40,28 +40,40 @@ class AppRouter {
       GoRoute(
         path: '/home',
         name: 'home',
-        builder: (context, state) => const MainScreen(child: HomeScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const MainScreen(child: HomeScreen()),
+        ),
       ),
 
       // 검색 화면
       GoRoute(
         path: '/search',
         name: 'search',
-        builder: (context, state) => const MainScreen(child: SearchScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const MainScreen(child: SearchScreen()),
+        ),
       ),
 
       // 거래 내역 화면
       GoRoute(
         path: '/transactions',
         name: 'transactions',
-        builder: (context, state) => const MainScreen(child: TransactionScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const MainScreen(child: TransactionScreen()),
+        ),
       ),
 
       // 프로필 화면
       GoRoute(
         path: '/profile',
         name: 'profile',
-        builder: (context, state) => const MainScreen(child: ProfileScreen()),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          child: const MainScreen(child: ProfileScreen()),
+        ),
       ),
 
       // 교재 등록 화면 (독립적인 화면)
@@ -78,9 +90,30 @@ class AppRouter {
       GoRoute(
         path: '/book/:bookId',
         name: 'bookDetail',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final bookId = state.pathParameters['bookId']!;
-          return BookDetailScreen(bookId: bookId);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: BookDetailScreen(bookId: bookId),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              // 열릴 때: 0.8배에서 1.0배로 확대 + 페이드인
+              var scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
+
+              var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              );
+
+              return FadeTransition(
+                opacity: fadeAnimation,
+                child: ScaleTransition(
+                  scale: scaleAnimation,
+                  child: child,
+                ),
+              );
+            },
+          );
         },
       ),
 

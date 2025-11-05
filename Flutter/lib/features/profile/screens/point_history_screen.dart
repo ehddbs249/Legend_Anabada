@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/premium_card.dart';
@@ -50,6 +51,16 @@ class _PointHistoryScreenState extends State<PointHistoryScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('포인트 내역'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: Consumer<PointProvider>(
         builder: (context, provider, child) {

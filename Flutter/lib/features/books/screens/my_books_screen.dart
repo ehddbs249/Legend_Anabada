@@ -42,6 +42,16 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('내 교재 관리'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: Consumer<BookProvider>(
         builder: (context, provider, child) {
@@ -62,7 +72,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
               title: '등록한 교재가 없습니다',
               description: '교재를 등록하고 다른 학생들과 공유해보세요!',
               actionText: '교재 등록하기',
-              onAction: () => context.go('/register'),
+              onAction: () => context.push('/register'),
             );
           }
 
@@ -86,7 +96,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/register'),
+        onPressed: () => context.push('/register'),
         icon: const Icon(Icons.add),
         label: const Text('교재 등록'),
         backgroundColor: AppColors.primary,

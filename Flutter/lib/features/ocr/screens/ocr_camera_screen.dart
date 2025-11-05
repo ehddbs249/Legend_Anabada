@@ -190,7 +190,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
               Navigator.of(context).pop();
               // OCR 결과와 촬영한 이미지를 함께 전달
               final dataToPass = {...result, 'capturedImage': _capturedImage};
-              context.go('/register', extra: dataToPass);
+              context.push('/register', extra: dataToPass);
             },
             child: const Text('등록하기'),
           ),

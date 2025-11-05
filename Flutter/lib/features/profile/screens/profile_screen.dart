@@ -262,7 +262,7 @@ class _PointsCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => context.go('/point-history'),
+              onPressed: () => context.push('/point-history'),
               icon: const Icon(Icons.history, size: 18),
               label: const Text('포인트 내역 보기'),
               style: OutlinedButton.styleFrom(
@@ -343,14 +343,14 @@ class _MenuSection extends StatelessWidget {
                   icon: Icons.book_outlined,
                   title: '등록한 교재',
                   subtitle: '$myBooksCount권',
-                  onTap: () => context.go('/my-books'),
+                  onTap: () => context.push('/my-books'),
                 ),
                 const Divider(height: 1),
                 _MenuItem(
                   icon: Icons.shopping_bag_outlined,
                   title: '구매한 교재',
                   subtitle: '$borrowedBooksCount권',
-                  onTap: () => context.go('/borrowed-books'),
+                  onTap: () => context.push('/borrowed-books'),
                 ),
                 const Divider(height: 1),
                 _MenuItem(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/premium_card.dart';
@@ -42,7 +43,19 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('구매한 교재')),
+      appBar: AppBar(
+        title: const Text('구매한 교재'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
+      ),
       body: Consumer<TransactionProvider>(
         builder: (context, provider, child) {
           // 로딩 중

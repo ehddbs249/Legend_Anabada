@@ -39,7 +39,7 @@ class BookDisplayCard extends StatelessWidget {
         children: [
           // 책 이미지 섹션
           Expanded(
-            flex: 3,
+            flex: 5,
             child: Stack(
               children: [
                 // 메인 이미지
@@ -122,7 +122,7 @@ class BookDisplayCard extends StatelessWidget {
           ),
           // 정보 섹션
           Expanded(
-            flex: 2,
+            flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
@@ -132,7 +132,7 @@ class BookDisplayCard extends StatelessWidget {
                   Text(
                     title,
                     style: AppTypography.titleSmall,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.xs),

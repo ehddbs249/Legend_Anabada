@@ -102,7 +102,7 @@ class _MainScreenState extends State<MainScreen>
                     child: PremiumFAB(
                       onPressed: () {
                         HapticFeedback.lightImpact();
-                        context.go(AppRoutes.register);
+                        context.push(AppRoutes.register);
                       },
                       icon: const Icon(Icons.add_rounded),
                       tooltip: '교재 등록',
@@ -164,7 +164,7 @@ class _MainScreenState extends State<MainScreen>
                 Icons.add_circle_outline_rounded,
                 Icons.add_circle_rounded,
                 AppStrings.register,
-                () => context.go(AppRoutes.register),
+                () => context.push(AppRoutes.register),
               ),
               _buildNavItem(
                 context,
