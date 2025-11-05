@@ -32,6 +32,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   app_user.User? _seller;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _hasActiveTransaction = false;
 
   @override
   void initState() {
@@ -65,9 +66,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           .eq('user_id', book.userId)
           .single();
 
+      // 이 책의 활성 거래가 있는지 확인 (pending, active, completed 상태)
+      final activeTransactions = await Supabase.instance.client
+          .from('book_transaction')
+          .select('trans_id')
+          .eq('book_id', widget.bookId)
+          .inFilter('trans_status', ['pending', 'active', 'completed'])
+          .limit(1);
+
       setState(() {
         _book = book;
         _seller = app_user.User.fromJson(sellerData);
+        _hasActiveTransaction = (activeTransactions as List).isNotEmpty;
         _isLoading = false;
       });
     } catch (e) {
@@ -96,6 +106,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     // 본인 책인 경우
     if (_book!.userId == currentUser.id) {
       _showErrorDialog('본인이 등록한 책은 대여할 수 없습니다.');
+      return;
+    }
+
+    // 이미 거래 중이거나 판매 완료된 책인 경우
+    if (_hasActiveTransaction) {
+      _showErrorDialog('이미 판매가 완료되었거나 거래가 진행 중인 책입니다.');
       return;
     }
 
