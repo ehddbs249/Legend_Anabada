@@ -121,7 +121,7 @@ class _BorrowedBooksScreenState extends State<BorrowedBooksScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () {
-          // TODO: 거래 상세 페이지로 이동
+          context.push('/book/${transaction.bookId}');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

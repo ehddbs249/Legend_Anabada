@@ -111,7 +111,7 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () {
-          // TODO: 교재 상세 페이지로 이동
+          context.push('/book/${book.id}');
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
