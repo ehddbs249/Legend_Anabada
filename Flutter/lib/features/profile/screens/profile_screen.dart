@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -362,62 +363,40 @@ class _MenuSection extends StatelessWidget {
           const SizedBox(height: 20),
           PremiumCard(
             elevation: 2,
-            child: Column(
-              children: [
-                _MenuItem(
-                  icon: Icons.logout,
-                  title: '로그아웃',
-                  textColor: AppColors.error,
-                  onTap: () {
-                    _showLogoutDialog(context);
-                  },
-                ),
-              ],
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '고객문의',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'support@anabada.ac.kr',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.contact_support_outlined,
+                    size: 24,
+                    color: AppColors.textPrimary,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃 하시겠습니까?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-
-                // 로그아웃 실행
-                final authProvider = Provider.of<AuthProvider>(
-                  context,
-                  listen: false,
-                );
-                await authProvider.signOut();
-
-                // 로그인 화면으로 이동
-                if (context.mounted) {
-                  context.go(AppRoutes.login);
-                }
-              },
-              child: const Text(
-                '로그아웃',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -427,26 +406,18 @@ class _MenuItem extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
-  final Color? textColor;
-
   const _MenuItem({
     required this.icon,
     required this.title,
     this.subtitle,
     required this.onTap,
-    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: textColor ?? AppColors.textPrimary),
-      title: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(color: textColor),
-      ),
+      leading: Icon(icon, color: AppColors.textPrimary),
+      title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
       subtitle: subtitle != null
           ? Text(subtitle!, style: Theme.of(context).textTheme.bodySmall)
           : null,
