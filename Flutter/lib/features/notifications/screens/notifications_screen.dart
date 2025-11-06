@@ -144,16 +144,16 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           const SizedBox(height: AppSpacing.md),
           Text(
             '알림이 없습니다',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             '새로운 알림이 도착하면 여기에 표시됩니다',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textTertiary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -192,7 +192,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             Tab(
               child: Consumer<NotificationProvider>(
                 builder: (context, provider, _) {
-                  final count = provider.getNotificationsByCategory('transaction').length;
+                  final count = provider
+                      .getNotificationsByCategory('transaction')
+                      .length;
                   return _buildTabLabel('거래', count);
                 },
               ),
@@ -200,7 +202,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             Tab(
               child: Consumer<NotificationProvider>(
                 builder: (context, provider, _) {
-                  final count = provider.getNotificationsByCategory('point').length;
+                  final count = provider
+                      .getNotificationsByCategory('point')
+                      .length;
                   return _buildTabLabel('포인트', count);
                 },
               ),
@@ -208,7 +212,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             Tab(
               child: Consumer<NotificationProvider>(
                 builder: (context, provider, _) {
-                  final count = provider.getNotificationsByCategory('locker').length;
+                  final count = provider
+                      .getNotificationsByCategory('locker')
+                      .length;
                   return _buildTabLabel('사물함', count);
                 },
               ),
@@ -216,7 +222,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             Tab(
               child: Consumer<NotificationProvider>(
                 builder: (context, provider, _) {
-                  final count = provider.getNotificationsByCategory('system').length;
+                  final count = provider
+                      .getNotificationsByCategory('system')
+                      .length;
                   return _buildTabLabel('시스템', count);
                 },
               ),
@@ -228,9 +236,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         builder: (context, provider, _) {
           // 로딩 상태
           if (provider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           // 에러 상태
@@ -247,16 +253,19 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     provider.errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.error,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   ElevatedButton(
                     onPressed: () {
                       provider.clearError();
-                      final userId = context.read<AuthProvider>().currentUser?.id;
+                      final userId = context
+                          .read<AuthProvider>()
+                          .currentUser
+                          ?.id;
                       if (userId != null) {
                         provider.subscribeToNotifications(userId);
                       }
@@ -275,13 +284,21 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               // 전체
               _buildNotificationList(provider.notifications),
               // 거래
-              _buildNotificationList(provider.getNotificationsByCategory('transaction')),
+              _buildNotificationList(
+                provider.getNotificationsByCategory('transaction'),
+              ),
               // 포인트
-              _buildNotificationList(provider.getNotificationsByCategory('point')),
+              _buildNotificationList(
+                provider.getNotificationsByCategory('point'),
+              ),
               // 사물함
-              _buildNotificationList(provider.getNotificationsByCategory('locker')),
+              _buildNotificationList(
+                provider.getNotificationsByCategory('locker'),
+              ),
               // 시스템
-              _buildNotificationList(provider.getNotificationsByCategory('system')),
+              _buildNotificationList(
+                provider.getNotificationsByCategory('system'),
+              ),
             ],
           );
         },
@@ -298,10 +315,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         if (count > 0) ...[
           const SizedBox(width: 4),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 6,
-              vertical: 2,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(10),

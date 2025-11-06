@@ -30,13 +30,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final bookProvider = Provider.of<BookProvider>(context, listen: false);
-    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final transactionProvider = Provider.of<TransactionProvider>(
+      context,
+      listen: false,
+    );
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     if (authProvider.currentUser != null) {
       await Future.wait([
         bookProvider.fetchMyBooks(authProvider.currentUser!.id),
-        transactionProvider.fetchMyBorrowingTransactions(authProvider.currentUser!.id),
+        transactionProvider.fetchMyBorrowingTransactions(
+          authProvider.currentUser!.id,
+        ),
         pointProvider.fetchBalance(authProvider.currentUser!.id),
         pointProvider.fetchTransactions(authProvider.currentUser!.id),
       ]);
@@ -51,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () => context.push(AppRoutes.settings),
           ),
         ],
       ),
@@ -96,22 +101,19 @@ class _ProfileHeader extends StatelessWidget {
             backgroundColor: AppColors.primaryLight,
             child: Text(
               initial,
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    color: AppColors.primary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineLarge?.copyWith(color: AppColors.primary),
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            user.name,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text(user.name, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
           Text(
             user.email,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
           Row(
@@ -119,7 +121,10 @@ class _ProfileHeader extends StatelessWidget {
             children: [
               if (user.department.isNotEmpty) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -127,14 +132,17 @@ class _ProfileHeader extends StatelessWidget {
                   child: Text(
                     user.department,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: AppColors.secondary,
-                        ),
+                      color: AppColors.secondary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: user.role.isNotEmpty
                       ? AppColors.success.withValues(alpha: 0.1)
@@ -144,8 +152,10 @@ class _ProfileHeader extends StatelessWidget {
                 child: Text(
                   user.role.isNotEmpty ? '${user.role} 인증 완료' : '미인증',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: user.role.isNotEmpty ? AppColors.success : AppColors.warning,
-                      ),
+                    color: user.role.isNotEmpty
+                        ? AppColors.success
+                        : AppColors.warning,
+                  ),
                 ),
               ),
             ],
@@ -196,19 +206,16 @@ class _PointsCard extends StatelessWidget {
                   Text(
                     '보유 포인트',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${currentPoints.toString().replaceAllMapped(
-                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                          (Match m) => '${m[1]},',
-                        )} P',
+                    '${currentPoints.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} P',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -235,24 +242,16 @@ class _PointsCard extends StatelessWidget {
               _PointsStatItem(
                 icon: Icons.arrow_upward,
                 label: '획득 포인트',
-                value: '${earnedPoints.toString().replaceAllMapped(
-                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                      (Match m) => '${m[1]},',
-                    )} P',
+                value:
+                    '${earnedPoints.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} P',
                 color: Colors.green.shade300,
               ),
-              Container(
-                height: 40,
-                width: 1,
-                color: Colors.white24,
-              ),
+              Container(height: 40, width: 1, color: Colors.white24),
               _PointsStatItem(
                 icon: Icons.arrow_downward,
                 label: '사용 포인트',
-                value: '${spentPoints.toString().replaceAllMapped(
-                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                      (Match m) => '${m[1]},',
-                    )} P',
+                value:
+                    '${spentPoints.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} P',
                 color: Colors.red.shade300,
               ),
             ],
@@ -299,17 +298,17 @@ class _PointsStatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white70,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.white70),
         ),
         const SizedBox(height: 2),
         Text(
           value,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -323,17 +322,15 @@ class _MenuSection extends StatelessWidget {
     final transactionProvider = Provider.of<TransactionProvider>(context);
 
     final myBooksCount = bookProvider.myBooks.length;
-    final borrowedBooksCount = transactionProvider.myBorrowingTransactions.length;
+    final borrowedBooksCount =
+        transactionProvider.myBorrowingTransactions.length;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '내 활동',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('내 활동', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           PremiumCard(
             elevation: 2,
@@ -402,7 +399,10 @@ class _MenuSection extends StatelessWidget {
                 Navigator.pop(dialogContext);
 
                 // 로그아웃 실행
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                final authProvider = Provider.of<AuthProvider>(
+                  context,
+                  listen: false,
+                );
                 await authProvider.signOut();
 
                 // 로그인 화면으로 이동
@@ -440,26 +440,17 @@ class _MenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: textColor ?? AppColors.textPrimary,
-      ),
+      leading: Icon(icon, color: textColor ?? AppColors.textPrimary),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: textColor,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: textColor),
       ),
       subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodySmall,
-            )
+          ? Text(subtitle!, style: Theme.of(context).textTheme.bodySmall)
           : null,
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: AppColors.textSecondary,
-      ),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
       onTap: onTap,
     );
   }

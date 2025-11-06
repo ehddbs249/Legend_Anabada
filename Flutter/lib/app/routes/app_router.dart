@@ -11,6 +11,8 @@ import '../../features/transactions/screens/transaction_screen.dart';
 import '../../features/transactions/screens/borrowed_books_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/point_history_screen.dart';
+import '../../features/profile/screens/settings_screen.dart';
+import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/locker/screens/locker_screen.dart';
 import '../../features/locker/screens/locker_detail_screen.dart';
 import '../../features/ocr/screens/ocr_camera_screen.dart';
@@ -177,6 +179,20 @@ class AppRouter {
         name: 'borrowedBooks',
         builder: (context, state) => const BorrowedBooksScreen(),
       ),
+
+      // 설정 화면
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // 프로필 수정 화면
+      GoRoute(
+        path: '/settings/edit-profile',
+        name: 'editProfile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
     ],
 
     // 404 에러 처리
@@ -224,6 +240,8 @@ class AppRoutes {
   static const String transactions = '/transactions';
   static const String profile = '/profile';
   static const String locker = '/locker';
+  static const String settings = '/settings';
+  static const String editProfile = '/settings/edit-profile';
 
   /// 책 상세 화면 경로 생성
   static String bookDetail(String bookId) => '/book/$bookId';

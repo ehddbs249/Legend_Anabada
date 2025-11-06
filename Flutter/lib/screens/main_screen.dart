@@ -17,8 +17,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen>
-    with TickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   late AnimationController _fabAnimationController;
   late Animation<double> _fabScaleAnimation;
   late Animation<double> _fabRotationAnimation;
@@ -35,20 +34,14 @@ class _MainScreenState extends State<MainScreen>
       vsync: this,
     );
 
-    _fabScaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
+    _fabScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _fabAnimationController,
         curve: AppAnimations.elasticOut,
       ),
     );
 
-    _fabRotationAnimation = Tween<double>(
-      begin: 0.0,
-      end: 0.25,
-    ).animate(
+    _fabRotationAnimation = Tween<double>(begin: 0.0, end: 0.25).animate(
       CurvedAnimation(
         parent: _fabAnimationController,
         curve: AppAnimations.emphasized,
@@ -68,6 +61,7 @@ class _MainScreenState extends State<MainScreen>
     _fabAnimationController.dispose();
     super.dispose();
   }
+
   int _getSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     switch (location) {
@@ -237,11 +231,11 @@ class _MainScreenState extends State<MainScreen>
                 AnimatedDefaultTextStyle(
                   duration: AppAnimations.fast,
                   style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                        color: color,
-                        fontSize: 9,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        height: 1.0,
-                      ),
+                    color: color,
+                    fontSize: 9,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    height: 1.0,
+                  ),
                   child: Text(
                     label,
                     maxLines: 1,

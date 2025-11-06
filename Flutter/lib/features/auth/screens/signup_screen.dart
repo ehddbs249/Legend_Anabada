@@ -40,19 +40,17 @@ class _SignupScreenState extends State<SignupScreen> {
     '영어영문학과',
   ];
 
-  final List<String> _grades = [
-    '1학년',
-    '2학년',
-    '3학년',
-    '4학년',
-    '대학원생',
-  ];
+  final List<String> _grades = ['1학년', '2학년', '3학년', '4학년', '대학원생'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.signUp),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.go(AppRoutes.login),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -62,10 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '기본 정보',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
+                Text('기본 정보', style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
@@ -103,10 +98,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.school_outlined),
                   ),
                   items: _departments.map((dept) {
-                    return DropdownMenuItem(
-                      value: dept,
-                      child: Text(dept),
-                    );
+                    return DropdownMenuItem(value: dept, child: Text(dept));
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
@@ -128,10 +120,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     prefixIcon: Icon(Icons.grade_outlined),
                   ),
                   items: _grades.map((grade) {
-                    return DropdownMenuItem(
-                      value: grade,
-                      child: Text(grade),
-                    );
+                    return DropdownMenuItem(value: grade, child: Text(grade));
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
@@ -146,10 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   },
                 ),
                 const SizedBox(height: 32),
-                Text(
-                  '계정 정보',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
+                Text('계정 정보', style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
@@ -173,16 +159,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha:0.1),
+                    color: AppColors.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: AppColors.info,
-                      ),
+                      Icon(Icons.info_outline, size: 16, color: AppColors.info),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -238,7 +220,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       onPressed: () {
                         setState(() {
-                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                          _isConfirmPasswordVisible =
+                              !_isConfirmPasswordVisible;
                         });
                       },
                     ),
@@ -273,14 +256,18 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: (_isLoading || !_agreedToTerms) ? null : _handleSignup,
+                  onPressed: (_isLoading || !_agreedToTerms)
+                      ? null
+                      : _handleSignup,
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('회원가입'),
@@ -324,9 +311,7 @@ class _SignupScreenState extends State<SignupScreen> {
             builder: (context) {
               return AlertDialog(
                 title: const Text('회원가입 완료'),
-                content: const Text(
-                  '회원가입이 완료되었습니다.\n로그인 페이지로 이동합니다.',
-                ),
+                content: const Text('회원가입이 완료되었습니다.\n로그인 페이지로 이동합니다.'),
                 actions: [
                   TextButton(
                     onPressed: () {
@@ -343,9 +328,7 @@ class _SignupScreenState extends State<SignupScreen> {
           // 회원가입 실패 - 에러 메시지 표시
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                authProvider.errorMessage ?? '회원가입에 실패했습니다.',
-              ),
+              content: Text(authProvider.errorMessage ?? '회원가입에 실패했습니다.'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(

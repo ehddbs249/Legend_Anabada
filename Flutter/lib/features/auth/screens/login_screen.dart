@@ -28,15 +28,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                minHeight:
+                    screenHeight -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom,
               ),
               child: Column(
                 children: [
@@ -68,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha:0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
                 spreadRadius: 0,
@@ -85,20 +86,20 @@ class _LoginScreenState extends State<LoginScreen> {
         Text(
           AppStrings.appName,
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                background: Paint()
-                  ..shader = AppColors.primaryGradient.createShader(
-                    const Rect.fromLTWH(0, 0, 200, 70),
-                  ),
+            fontWeight: FontWeight.w800,
+            background: Paint()
+              ..shader = AppColors.primaryGradient.createShader(
+                const Rect.fromLTWH(0, 0, 200, 70),
               ),
+          ),
         ),
         const SizedBox(height: 12),
         Text(
           AppStrings.appTagline,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -115,16 +116,16 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             '로그인',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             '대학교 이메일로 안전하게 로그인하세요',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 32),
           Form(
@@ -206,9 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       AppStrings.forgotPassword,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -234,21 +235,21 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           '아직 계정이 없으신가요?',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 4),
         TextButton(
           onPressed: () {
-            context.go(AppRoutes.signup);
+            context.push(AppRoutes.signup);
           },
           child: Text(
             AppStrings.signUp,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -280,9 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // 로그인 실패 - 에러 메시지 표시
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                authProvider.errorMessage ?? '로그인에 실패했습니다.',
-              ),
+              content: Text(authProvider.errorMessage ?? '로그인에 실패했습니다.'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -332,16 +331,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   '비밀번호 찾기',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   '가입하신 이메일로\n비밀번호 재설정 링크를 보내드립니다.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -375,9 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text(
-                                '비밀번호 재설정 링크를 이메일로 전송했습니다.',
-                              ),
+                              content: const Text('비밀번호 재설정 링크를 이메일로 전송했습니다.'),
                               backgroundColor: AppColors.success,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(

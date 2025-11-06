@@ -38,7 +38,8 @@ class SupabaseService {
       final response = await client.auth.signUp(
         email: email,
         password: password,
-        emailRedirectTo: 'https://chiobject.github.io/Legend_anabada_auth_test/auth_success.html',
+        emailRedirectTo:
+            'https://chiobject.github.io/Legend_anabada_auth_test/auth_success.html',
       );
       return response;
     } catch (e) {

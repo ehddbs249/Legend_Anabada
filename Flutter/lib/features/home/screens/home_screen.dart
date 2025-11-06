@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => context.go('/notifications'),
+          onTap: () => context.push('/notifications'),
           borderRadius: BorderRadius.circular(12),
           child: Stack(
             children: [
@@ -725,7 +725,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   /// OCR 소스 선택 다이얼로그
   void _showOcrSourceDialog(BuildContext context) {
     showDialog(
@@ -782,9 +781,8 @@ class _HomeScreenState extends State<HomeScreen> {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(),
-            ),
+            builder: (context) =>
+                const Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -796,10 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // OCR 결과와 이미지를 등록 화면으로 전달
           if (mounted) {
-            final dataToPass = {
-              ...result,
-              'capturedImage': image,
-            };
+            final dataToPass = {...result, 'capturedImage': image};
             context.push('/register', extra: dataToPass);
           }
         } catch (e) {
@@ -816,9 +811,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 선택 실패: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('이미지 선택 실패: ${e.toString()}')));
       }
     }
   }
