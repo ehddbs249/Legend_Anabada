@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class OcrService {
   final Dio _dio = Dio();
 
-  // TODO: 실제 OCR 서버 URL로 변경 필요
-  static const String _ocrServerUrl = 'http://192.168.0.13:8000/predict';
+  // 환경 변수에서 OCR 서버 URL 가져오기
+  static String get _ocrServerUrl =>
+      dotenv.env['OCR_SERVER_URL'] ?? 'http://localhost:8000/predict';
 
   /// 이미지에서 교재 정보 추출
   Future<Map<String, dynamic>> extractBookInfo(XFile imageFile) async {
