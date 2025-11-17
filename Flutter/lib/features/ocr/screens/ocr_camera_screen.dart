@@ -438,6 +438,16 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
         title: Text(_isPhotoTaken ? '촬영 확인' : '책 표지 촬영'),
         backgroundColor: Colors.black,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(
           color: Colors.white,
