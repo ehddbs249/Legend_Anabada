@@ -34,6 +34,14 @@ class Transaction {
   /// 책 이미지 URL (book 테이블에서 조인) ← book.img_url
   final String? bookImgUrl;
 
+  /// 사물함 ID (UUID, nullable) ← locker_id
+  /// 거래 시 배정된 사물함의 UUID
+  final String? lockerId;
+
+  /// 사물함 번호 (1~4, nullable) ← locker.locker_num (JOIN)
+  /// 화면 표시용
+  final int? lockerNum;
+
   const Transaction({
     required this.id,
     required this.bookId,
@@ -46,6 +54,8 @@ class Transaction {
     this.sellerName,
     this.borrowerName,
     this.bookImgUrl,
+    this.lockerId,
+    this.lockerNum,
   });
 
   /// JSON에서 Transaction 객체 생성
@@ -72,6 +82,12 @@ class Transaction {
       borrowerName = json['borrower']['name'] as String?;
     }
 
+    // locker 정보가 조인되어 있으면 가져오기
+    int? lockerNum;
+    if (json['locker'] != null && json['locker'] is Map) {
+      lockerNum = json['locker']['locker_num'] as int?;
+    }
+
     return Transaction(
       id: json['trans_id'] as String,
       bookId: json['book_id'] as String,
@@ -84,6 +100,8 @@ class Transaction {
       sellerName: sellerName,
       borrowerName: borrowerName,
       bookImgUrl: bookImgUrl,
+      lockerId: json['locker_id'] as String?,
+      lockerNum: lockerNum,
     );
   }
 
@@ -96,6 +114,7 @@ class Transaction {
       'borrower_id': borrowerId,
       'trans_status': transStatus,
       'trans_date': transDate.toIso8601String(),
+      'locker_id': lockerId,
     };
   }
 
@@ -112,6 +131,8 @@ class Transaction {
     String? sellerName,
     String? borrowerName,
     String? bookImgUrl,
+    String? lockerId,
+    int? lockerNum,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -125,6 +146,8 @@ class Transaction {
       sellerName: sellerName ?? this.sellerName,
       borrowerName: borrowerName ?? this.borrowerName,
       bookImgUrl: bookImgUrl ?? this.bookImgUrl,
+      lockerId: lockerId ?? this.lockerId,
+      lockerNum: lockerNum ?? this.lockerNum,
     );
   }
 
@@ -151,6 +174,12 @@ class Transaction {
 
   /// 거래 진행 중 여부
   bool get isActive => transStatus == 'active';
+
+  /// 사물함 배정 여부
+  bool get hasLocker => lockerId != null;
+
+  /// 사물함 접근 가능 여부 (진행 중이고 사물함이 배정된 경우)
+  bool get canAccessLocker => isActive && hasLocker;
 
   @override
   bool operator ==(Object other) =>

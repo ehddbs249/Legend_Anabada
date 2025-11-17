@@ -7,3 +7,5 @@ OCR/EasyOCR
 .flutter-plugins-dependencies
 capstone_anabada.iml
 .env
+build/
+.dart_tool/

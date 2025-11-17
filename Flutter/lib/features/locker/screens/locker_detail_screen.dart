@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../app/routes/app_router.dart';
+import '../../../data/providers/locker_provider.dart';
 
-class LockerDetailScreen extends StatelessWidget {
+class LockerDetailScreen extends StatefulWidget {
   final String lockerId;
   final String bookTitle;
   final String transactionId;
@@ -18,10 +20,103 @@ class LockerDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<LockerDetailScreen> createState() => _LockerDetailScreenState();
+}
+
+class _LockerDetailScreenState extends State<LockerDetailScreen> {
+  bool _isLockerOpen = false;
+  bool _isLoading = false;
+
+  /// 사물함 열기
+  Future<void> _openLocker() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final lockerProvider = context.read<LockerProvider>();
+      final success = await lockerProvider.openLocker(widget.lockerId, widget.pinCode);
+
+      if (success && mounted) {
+        setState(() => _isLockerOpen = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ 사물함이 열렸습니다!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${lockerProvider.errorMessage ?? "사물함 열기에 실패했습니다"}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// 사물함 닫기
+  Future<void> _closeLocker() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final lockerProvider = context.read<LockerProvider>();
+      final success = await lockerProvider.closeLocker(widget.lockerId);
+
+      if (success && mounted) {
+        setState(() => _isLockerOpen = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🔒 사물함이 닫혔습니다!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${lockerProvider.errorMessage ?? "사물함 닫기에 실패했습니다"}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// 사물함 토글 (열림 ↔ 닫힘)
+  Future<void> _toggleLocker() async {
+    if (_isLockerOpen) {
+      await _closeLocker();
+    } else {
+      await _openLocker();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('사물함 $lockerId'),
+        title: Text('사물함 ${widget.lockerId}'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -37,11 +132,30 @@ class LockerDetailScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isLockerOpen ? Icons.lock_open : Icons.lock,
+                        size: 48,
+                        color: _isLockerOpen ? AppColors.success : AppColors.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        _isLockerOpen ? '열림' : '닫힘',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: _isLockerOpen ? AppColors.success : AppColors.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     'PIN 번호',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -50,19 +164,13 @@ class LockerDetailScreen extends StatelessWidget {
                       border: Border.all(color: AppColors.primary, width: 2),
                     ),
                     child: Text(
-                      pinCode,
+                      widget.pinCode,
                       style: Theme.of(context).textTheme.displayMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             letterSpacing: 8,
                             color: AppColors.primary,
                           ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '사물함에 PIN 번호를 입력해주세요',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -84,7 +192,7 @@ class LockerDetailScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       Text(
-                        lockerId,
+                        widget.lockerId,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
@@ -101,7 +209,7 @@ class LockerDetailScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       Text(
-                        bookTitle,
+                        widget.bookTitle,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ],
@@ -115,7 +223,7 @@ class LockerDetailScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       Text(
-                        transactionId,
+                        widget.transactionId,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
@@ -162,67 +270,45 @@ class LockerDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                _showPassword(context);
-              },
-              child: const Text('비밀번호로 열기'),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _toggleLocker,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(_isLockerOpen ? Icons.lock : Icons.lock_open),
+                label: Text(
+                  _isLoading
+                      ? '제어 중...'
+                      : _isLockerOpen
+                          ? '사물함 닫기'
+                          : '사물함 열기',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isLockerOpen ? AppColors.warning : AppColors.success,
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () {
-                context.go(AppRoutes.transactions);
-              },
-              child: const Text('닫기'),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                onPressed: () {
+                  context.go(AppRoutes.transactions);
+                },
+                child: const Text('거래 화면으로 돌아가기'),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  void _showPassword(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('사물함 비밀번호'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    '1234',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 8,
-                        ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '이 비밀번호는 24시간 후 자동으로 만료됩니다',
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('확인'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

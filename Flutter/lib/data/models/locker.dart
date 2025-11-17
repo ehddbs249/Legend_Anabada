@@ -1,6 +1,6 @@
 /// 사물함 데이터 모델
-/// Spring Boot Entity: Locker (locker_id, locker_status, is_broken, locker_num)
-/// BREAKING CHANGE: id 타입이 int에서 String (UUID)으로 변경됨
+/// Spring Boot Entity: Locker (locker_id, locker_status, is_broken, locker_num, current_book_id)
+/// BREAKING CHANGE: id 타입이 int에서 String (UUID)으로 변경됨, current_book_id 필드 추가
 class Locker {
   /// 사물함 ID (UUID) ← locker_id
   /// 이전에는 int였으나 Spring Boot Entity에서 UUID로 변경됨
@@ -15,11 +15,15 @@ class Locker {
   /// 사물함 번호 ← locker_num
   final int? lockerNum;
 
+  /// 현재 보관 중인 책 ID (UUID, nullable) ← current_book_id
+  final String? currentBookId;
+
   const Locker({
     required this.id,
     required this.lockerStatus,
     this.isBroken,
     this.lockerNum,
+    this.currentBookId,
   });
 
   /// JSON에서 Locker 객체 생성
@@ -29,6 +33,7 @@ class Locker {
       lockerStatus: json['locker_status'] as String,
       isBroken: json['is_broken'] as bool?,
       lockerNum: json['locker_num'] as int?,
+      currentBookId: json['current_book_id'] as String?,
     );
   }
 
@@ -39,6 +44,7 @@ class Locker {
       'locker_status': lockerStatus,
       'is_broken': isBroken,
       'locker_num': lockerNum,
+      'current_book_id': currentBookId,
     };
   }
 
@@ -48,12 +54,14 @@ class Locker {
     String? lockerStatus,
     bool? isBroken,
     int? lockerNum,
+    String? currentBookId,
   }) {
     return Locker(
       id: id ?? this.id,
       lockerStatus: lockerStatus ?? this.lockerStatus,
       isBroken: isBroken ?? this.isBroken,
       lockerNum: lockerNum ?? this.lockerNum,
+      currentBookId: currentBookId ?? this.currentBookId,
     );
   }
 
@@ -74,7 +82,11 @@ class Locker {
   }
 
   /// 사물함 사용 가능 여부
-  bool get isAvailable => lockerStatus == 'available' && isBroken != true;
+  bool get isAvailable =>
+      lockerStatus == 'available' && isBroken != true && currentBookId == null;
+
+  /// 사물함 점유 여부
+  bool get isOccupied => lockerStatus == 'occupied' && currentBookId != null;
 
   /// 사물함 표시 이름 (번호 기반)
   String get displayName {
@@ -87,9 +99,7 @@ class Locker {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Locker &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is Locker && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

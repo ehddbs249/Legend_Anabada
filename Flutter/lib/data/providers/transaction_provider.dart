@@ -32,7 +32,9 @@ class TransactionProvider with ChangeNotifier {
           .select()
           .order('trans_date', ascending: false);
 
-      _transactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
+      _transactions = (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -53,12 +55,15 @@ class TransactionProvider with ChangeNotifier {
             *,
             book(point_price, title, img_url),
             user:user_id(name),
-            borrower:borrower_id(name)
+            borrower:borrower_id(name),
+            locker:locker_id(locker_num)
           ''')
           .eq('user_id', userId)
           .order('trans_date', ascending: false);
 
-      _myLendingTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
+      _myLendingTransactions = (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -79,12 +84,15 @@ class TransactionProvider with ChangeNotifier {
             *,
             book(point_price, title, img_url),
             user:user_id(name),
-            borrower:borrower_id(name)
+            borrower:borrower_id(name),
+            locker:locker_id(locker_num)
           ''')
           .eq('borrower_id', userId)
           .order('trans_date', ascending: false);
 
-      _myBorrowingTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
+      _myBorrowingTransactions = (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -105,13 +113,16 @@ class TransactionProvider with ChangeNotifier {
             *,
             book(point_price, title, img_url),
             user:user_id(name),
-            borrower:borrower_id(name)
+            borrower:borrower_id(name),
+            locker:locker_id(locker_num)
           ''')
           .or('user_id.eq.$userId,borrower_id.eq.$userId')
           .inFilter('trans_status', ['pending', 'active'])
           .order('trans_date', ascending: false);
 
-      _activeTransactions = (response as List).map((json) => Transaction.fromJson(json)).toList();
+      _activeTransactions = (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -130,11 +141,10 @@ class TransactionProvider with ChangeNotifier {
       _clearError();
 
       // PostgreSQL 함수 호출
-      final response = await Supabase.instance.client
-          .rpc('create_book_transaction', params: {
-            'p_book_id': bookId,
-            'p_borrower_id': borrowerId,
-          });
+      final response = await Supabase.instance.client.rpc(
+        'create_book_transaction',
+        params: {'p_book_id': bookId, 'p_borrower_id': borrowerId},
+      );
 
       _setLoading(false);
 
@@ -228,7 +238,13 @@ class TransactionProvider with ChangeNotifier {
     try {
       final response = await Supabase.instance.client
           .from('book_transaction')
-          .select()
+          .select('''
+            *,
+            book(point_price, title, img_url),
+            user:user_id(name),
+            borrower:borrower_id(name),
+            locker:locker_id(locker_num)
+          ''')
           .eq('trans_id', transactionId)
           .single();
       return Transaction.fromJson(response);
@@ -249,15 +265,15 @@ class TransactionProvider with ChangeNotifier {
     return cancelTransaction(transactionId);
   }
 
-  /// 사물함 배정 (미구현)
-  Future<bool> assignLocker(String transactionId, String lockerId) async {
+  /// 사물함 배정 (새로운 스키마 대응)
+  Future<bool> assignLocker(String transactionId, int lockerNumber) async {
     try {
       _setLoading(true);
       _clearError();
 
       final response = await Supabase.instance.client
           .from('book_transaction')
-          .update({'locker_id': lockerId})
+          .update({'locker_number': lockerNumber})
           .eq('trans_id', transactionId)
           .select()
           .single();
@@ -294,8 +310,11 @@ class TransactionProvider with ChangeNotifier {
     final lending = _myLendingTransactions.length;
     final borrowing = _myBorrowingTransactions.length;
     final completed = _transactions
-        .where((t) => (t.userId == userId || t.borrowerId == userId) &&
-                     t.transStatus == 'completed')
+        .where(
+          (t) =>
+              (t.userId == userId || t.borrowerId == userId) &&
+              t.transStatus == 'completed',
+        )
         .length;
     final active = _activeTransactions
         .where((t) => t.userId == userId || t.borrowerId == userId)
@@ -329,8 +348,13 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// 특정 목록에서 거래 업데이트
-  void _updateTransactionInList(List<Transaction> list, Transaction updatedTransaction) {
-    final index = list.indexWhere((transaction) => transaction.id == updatedTransaction.id);
+  void _updateTransactionInList(
+    List<Transaction> list,
+    Transaction updatedTransaction,
+  ) {
+    final index = list.indexWhere(
+      (transaction) => transaction.id == updatedTransaction.id,
+    );
     if (index != -1) {
       list[index] = updatedTransaction;
     }

@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/locker.dart';
+import '../services/locker_service.dart';
 
 /// 사물함 관련 상태 관리 Provider
 class LockerProvider with ChangeNotifier {
+  final LockerService _lockerService = LockerService();
   List<Locker> _lockers = [];
   List<Locker> _availableLockers = [];
   Locker? _selectedLocker;
@@ -148,14 +150,25 @@ class LockerProvider with ChangeNotifier {
     }
   }
 
-  /// 사물함 열기 (접근 코드 검증)
-  Future<bool> openLocker(String lockerId, String accessCode) async {
+  /// 사물함 열기 (서보모터 제어)
+  /// accessCode 파라미터는 하위 호환성을 위해 유지하지만 사용하지 않음
+  Future<bool> openLocker(String lockerId, [String? accessCode]) async {
     try {
       _setLoading(true);
       _clearError();
 
-      // TODO: 접근 코드 검증 로직 구현 (Transaction 테이블과 연동)
-      // 현재는 간단하게 성공 반환
+      // 사물함 정보 가져오기
+      final locker = await getLocker(lockerId);
+      if (locker == null || locker.lockerNum == null) {
+        throw Exception('사물함 정보를 찾을 수 없습니다');
+      }
+
+      // 라즈베리파이 서보모터로 사물함 열기
+      final success = await _lockerService.openLocker(locker.lockerNum!);
+
+      if (!success) {
+        throw Exception('사물함 잠금장치 제어 실패');
+      }
 
       _setLoading(false);
       notifyListeners();
@@ -164,6 +177,86 @@ class LockerProvider with ChangeNotifier {
       _setError('사물함 열기 중 오류가 발생했습니다: ${e.toString()}');
       _setLoading(false);
       return false;
+    }
+  }
+
+  /// 사물함 닫기 (서보모터 제어)
+  Future<bool> closeLocker(String lockerId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      // 사물함 정보 가져오기
+      final locker = await getLocker(lockerId);
+      if (locker == null || locker.lockerNum == null) {
+        throw Exception('사물함 정보를 찾을 수 없습니다');
+      }
+
+      // 라즈베리파이 서보모터로 사물함 닫기
+      final success = await _lockerService.closeLocker(locker.lockerNum!);
+
+      if (!success) {
+        throw Exception('사물함 잠금장치 제어 실패');
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('사물함 닫기 중 오류가 발생했습니다: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// 사물함 토글 (열림 ↔ 닫힘)
+  Future<bool> toggleLockerPhysical(String lockerId, bool isOpen) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      // 사물함 정보 가져오기
+      final locker = await getLocker(lockerId);
+      if (locker == null || locker.lockerNum == null) {
+        throw Exception('사물함 정보를 찾을 수 없습니다');
+      }
+
+      // 라즈베리파이 서보모터로 사물함 토글
+      final success = await _lockerService.toggleLocker(
+        locker.lockerNum!,
+        isOpen,
+      );
+
+      if (!success) {
+        throw Exception('사물함 잠금장치 제어 실패');
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('사물함 제어 중 오류가 발생했습니다: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// 라즈베리파이 서버 연결 확인
+  Future<bool> checkHardwareConnection() async {
+    try {
+      return await _lockerService.checkConnection();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 모든 사물함의 물리적 상태 가져오기
+  Future<Map<int, bool>?> getPhysicalLockerStates() async {
+    try {
+      return await _lockerService.getLockerStates();
+    } catch (e) {
+      _setError('사물함 상태 조회 실패: ${e.toString()}');
+      return null;
     }
   }
 
