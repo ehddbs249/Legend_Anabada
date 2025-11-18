@@ -20,6 +20,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
   bool _isCameraInitialized = false;
   bool _isPhotoTaken = false;
   XFile? _capturedImage;
+  Uint8List? _imageBytes; // 캐싱된 이미지 바이트
   bool _isProcessing = false;
   final OcrService _ocrService = OcrService();
 
@@ -101,9 +102,11 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
 
     try {
       final XFile image = await _cameraController!.takePicture();
+      final bytes = await image.readAsBytes();
 
       setState(() {
         _capturedImage = image;
+        _imageBytes = bytes;
         _isPhotoTaken = true;
       });
     } catch (e) {
@@ -115,6 +118,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
   Future<void> _retakePicture() async {
     setState(() {
       _capturedImage = null;
+      _imageBytes = null;
       _isPhotoTaken = false;
       _isCameraInitialized = false;
     });
@@ -293,17 +297,71 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Stack(
-      fit: StackFit.expand,
+    return Column(
       children: [
-        // 카메라 프리뷰
-        CameraPreview(_cameraController!),
+        // 카메라 프리뷰 영역
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cameraAspectRatio = _cameraController!.value.aspectRatio;
 
-        // 촬영 버튼
-        Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
+              // 사용 가능한 영역의 가로/세로 크기
+              final availableWidth = constraints.maxWidth;
+              final availableHeight = constraints.maxHeight;
+
+              // 카메라 aspect ratio에 맞춰 실제 렌더링될 크기 계산
+              double cameraWidth;
+              double cameraHeight;
+
+              if (availableWidth / availableHeight > cameraAspectRatio) {
+                // 사용 가능 영역이 카메라보다 더 가로로 넓음 -> 높이 기준
+                cameraHeight = availableHeight;
+                cameraWidth = cameraHeight * cameraAspectRatio;
+              } else {
+                // 사용 가능 영역이 카메라보다 더 세로로 김 -> 너비 기준
+                cameraWidth = availableWidth;
+                cameraHeight = cameraWidth / cameraAspectRatio;
+              }
+
+              // 실제 카메라 화면이 가로로 더 길면 가로 모드, 세로로 더 길면 세로 모드
+              final isCameraScreenLandscape = cameraWidth >= cameraHeight;
+
+              if (isCameraScreenLandscape) {
+                // 가로 모드: AspectRatio로 좌우 잘림 방지
+                return Center(
+                  child: AspectRatio(
+                    aspectRatio: cameraAspectRatio,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.diagonal3Values(-1, 1, 1),
+                      child: CameraPreview(_cameraController!),
+                    ),
+                  ),
+                );
+              } else {
+                // 세로 모드: 전체 영역 강제 채우기
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.diagonal3Values(-1, 1, 1),
+                  child: SizedBox.expand(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: availableHeight * cameraAspectRatio,
+                        height: availableHeight,
+                        child: CameraPreview(_cameraController!),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+
+        // 촬영 버튼 영역
+        SizedBox(
+          height: 150,
           child: Center(
             child: GestureDetector(
               onTap: _takePicture,
@@ -330,7 +388,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
 
   /// 촬영된 사진 미리보기 화면
   Widget _buildPhotoPreview() {
-    if (_capturedImage == null) {
+    if (_imageBytes == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -339,20 +397,28 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
         Expanded(
           child: Container(
             margin: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.divider, width: 2),
-            ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: FutureBuilder<Uint8List>(
-                future: _capturedImage!.readAsBytes(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Image.memory(snapshot.data!, fit: BoxFit.contain);
-                  }
-                  return const Center(child: CircularProgressIndicator());
-                },
+              borderRadius: BorderRadius.circular(20),
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(-1, 1, 1),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cameraAspectRatio =
+                        _cameraController?.value.aspectRatio ?? 1;
+
+                    return SizedBox.expand(
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: SizedBox(
+                          width: constraints.maxHeight * cameraAspectRatio,
+                          height: constraints.maxHeight,
+                          child: Image.memory(_imageBytes!),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
