@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -20,6 +21,65 @@ class OcrService {
         'file': MultipartFile.fromBytes(
           bytes,
           filename: imageFile.name.isNotEmpty ? imageFile.name : 'image.jpg',
+        ),
+      });
+
+      // OCR 서버에 요청
+      final response = await _dio.post(
+        _ocrServerUrl,
+        data: formData,
+        options: Options(
+          headers: {'Content-Type': 'multipart/form-data'},
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 60),
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        // 서버 응답에서 교재 정보 추출
+        final data = response.data;
+
+        // success 필드 확인
+        final success = data['success'] as bool? ?? false;
+
+        if (success == false) {
+          // OCR 실패 시
+          throw Exception('이미지에서 교재 정보를 인식할 수 없습니다. 다시 촬영해주세요.');
+        }
+
+        return {
+          'title': data['title'] as String? ?? '',
+          'author': data['author'] as String? ?? '',
+          'publisher': data['publisher'] as String? ?? '',
+          'condition_grade': data['condition_grade'], // 책 상태 (최상/상/중/하)
+          'dmg_tag': data['dmg_tag'], // 결함 태그 리스트
+        };
+      } else {
+        throw Exception('OCR 서버 응답 오류: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('서버 연결 시간 초과');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw Exception('서버에 연결할 수 없습니다');
+      } else {
+        throw Exception('OCR 처리 실패: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('OCR 처리 중 오류 발생: $e');
+    }
+  }
+
+  /// 바이트 배열에서 교재 정보 추출 (좌우반전된 이미지용)
+  Future<Map<String, dynamic>> extractBookInfoFromBytes(
+      Uint8List imageBytes) async {
+    try {
+      // FormData로 이미지 전송 준비
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          imageBytes,
+          filename: 'image.jpg',
         ),
       });
 

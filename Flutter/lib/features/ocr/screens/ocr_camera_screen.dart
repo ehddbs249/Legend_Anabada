@@ -1,10 +1,23 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../data/services/ocr_service.dart';
+
+// Isolate에서 실행할 이미지 반전 함수
+Uint8List _flipImageInIsolate(Uint8List imageBytes) {
+  final originalImage = img.decodeImage(imageBytes);
+  if (originalImage == null) {
+    throw Exception('이미지를 처리할 수 없습니다');
+  }
+
+  final flippedImage = img.flipHorizontal(originalImage);
+  return Uint8List.fromList(img.encodeJpg(flippedImage));
+}
 
 class OcrCameraScreen extends StatefulWidget {
   const OcrCameraScreen({super.key});
@@ -19,8 +32,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
   bool _isPhotoTaken = false;
-  XFile? _capturedImage;
-  Uint8List? _imageBytes; // 캐싱된 이미지 바이트
+  Uint8List? _imageBytes; // 원본 이미지 (미리보기용)
   bool _isProcessing = false;
   final OcrService _ocrService = OcrService();
 
@@ -104,8 +116,8 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
       final XFile image = await _cameraController!.takePicture();
       final bytes = await image.readAsBytes();
 
+      // 즉시 화면 전환 (미리보기는 Transform으로 반전 표시)
       setState(() {
-        _capturedImage = image;
         _imageBytes = bytes;
         _isPhotoTaken = true;
       });
@@ -117,7 +129,6 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
   /// 재촬영
   Future<void> _retakePicture() async {
     setState(() {
-      _capturedImage = null;
       _imageBytes = null;
       _isPhotoTaken = false;
       _isCameraInitialized = false;
@@ -133,23 +144,29 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
 
   /// OCR 처리
   Future<void> _processOcr() async {
-    if (_capturedImage == null) return;
+    if (_imageBytes == null) return;
 
+    // 먼저 로딩 상태 표시
     setState(() {
       _isProcessing = true;
     });
 
+    // UI가 로딩 화면으로 전환될 때까지 대기
+    await Future.delayed(const Duration(milliseconds: 100));
+
     try {
-      // TODO: 실제 OCR 서버가 준비되면 extractBookInfo로 변경
-      final result = await _ocrService.extractBookInfo(_capturedImage!);
-      // final result = await _ocrService.extractBookInfoMock(_capturedImage!);
+      // 이미지 좌우반전 처리
+      final flippedBytes = _flipImageInIsolate(_imageBytes!);
+
+      // OCR 서비스 호출
+      final result = await _ocrService.extractBookInfoFromBytes(flippedBytes);
 
       setState(() {
         _isProcessing = false;
       });
 
       if (mounted) {
-        _showResultDialog(result);
+        _showResultDialog(result, flippedBytes);
       }
     } catch (e) {
       setState(() {
@@ -163,7 +180,7 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
   }
 
   /// 결과 다이얼로그 표시
-  void _showResultDialog(Map<String, dynamic> result) {
+  void _showResultDialog(Map<String, dynamic> result, Uint8List flippedBytes) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -192,8 +209,8 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // OCR 결과와 촬영한 이미지를 함께 전달
-              final dataToPass = {...result, 'capturedImage': _capturedImage};
+              // OCR 결과와 좌우반전된 이미지를 함께 전달
+              final dataToPass = {...result, 'imageBytes': flippedBytes};
               context.push('/register', extra: dataToPass);
             },
             child: const Text('등록하기'),
@@ -301,61 +318,10 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
       children: [
         // 카메라 프리뷰 영역
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final cameraAspectRatio = _cameraController!.value.aspectRatio;
-
-              // 사용 가능한 영역의 가로/세로 크기
-              final availableWidth = constraints.maxWidth;
-              final availableHeight = constraints.maxHeight;
-
-              // 카메라 aspect ratio에 맞춰 실제 렌더링될 크기 계산
-              double cameraWidth;
-              double cameraHeight;
-
-              if (availableWidth / availableHeight > cameraAspectRatio) {
-                // 사용 가능 영역이 카메라보다 더 가로로 넓음 -> 높이 기준
-                cameraHeight = availableHeight;
-                cameraWidth = cameraHeight * cameraAspectRatio;
-              } else {
-                // 사용 가능 영역이 카메라보다 더 세로로 김 -> 너비 기준
-                cameraWidth = availableWidth;
-                cameraHeight = cameraWidth / cameraAspectRatio;
-              }
-
-              // 실제 카메라 화면이 가로로 더 길면 가로 모드, 세로로 더 길면 세로 모드
-              final isCameraScreenLandscape = cameraWidth >= cameraHeight;
-
-              if (isCameraScreenLandscape) {
-                // 가로 모드: AspectRatio로 좌우 잘림 방지
-                return Center(
-                  child: AspectRatio(
-                    aspectRatio: cameraAspectRatio,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.diagonal3Values(-1, 1, 1),
-                      child: CameraPreview(_cameraController!),
-                    ),
-                  ),
-                );
-              } else {
-                // 세로 모드: 전체 영역 강제 채우기
-                return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.diagonal3Values(-1, 1, 1),
-                  child: SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: availableHeight * cameraAspectRatio,
-                        height: availableHeight,
-                        child: CameraPreview(_cameraController!),
-                      ),
-                    ),
-                  ),
-                );
-              }
-            },
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(-1, 1, 1),
+            child: CameraPreview(_cameraController!),
           ),
         ),
 

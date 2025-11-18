@@ -72,9 +72,11 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       }
 
       // OCR 촬영 이미지가 있으면 자동으로 추가
-      if (widget.ocrData!['capturedImage'] != null) {
-        final capturedImage = widget.ocrData!['capturedImage'] as XFile;
-        _images.add(capturedImage);
+      if (widget.ocrData!['imageBytes'] != null) {
+        final imageBytes = widget.ocrData!['imageBytes'] as Uint8List;
+        // Uint8List를 XFile로 변환
+        final xFile = XFile.fromData(imageBytes, name: 'ocr_image.jpg');
+        _images.add(xFile);
       }
     }
 
