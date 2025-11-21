@@ -8,4 +8,9 @@ OCR/EasyOCR
 capstone_anabada.iml
 .env
 build/
-.dart_tool/
+.dart_tool
+
+# Auto-generated files
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
