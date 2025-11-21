@@ -6,8 +6,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../data/models/book.dart';
+import '../../../data/models/locker.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/auth_provider.dart';
+import '../../../data/providers/locker_provider.dart';
+import '../../../app/routes/app_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// 내 교재 관리 화면
@@ -228,54 +231,129 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
                     const SizedBox(height: 8),
 
                     // 액션 버튼들
-                    Row(
-                      children: [
-                        // 수정 버튼
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: 교재 수정 페이지로 이동
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('교재 수정 기능은 준비 중입니다')),
-                            );
-                          },
-                          icon: const Icon(Icons.edit, size: 16),
-                          label: const Text('수정'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // 삭제 버튼
-                        OutlinedButton.icon(
-                          onPressed: () => _showDeleteDialog(book),
-                          icon: const Icon(Icons.delete_outline, size: 16),
-                          label: const Text('삭제'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                      ],
-                    ),
+                    if (book.bookStatus == 'pending')
+                      _buildPendingBookActions(book)
+                    else
+                      _buildAvailableBookActions(book),
                   ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// pending 상태 책 액션 버튼들
+  Widget _buildPendingBookActions(Book book) {
+    return FutureBuilder<String?>(
+      future: context.read<BookProvider>().getAssignedLockerId(book.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 8),
+              _buildDeleteButton(book),
+            ],
+          );
+        }
+
+        final hasLocker = snapshot.data != null;
+
+        return Row(
+          children: [
+            // 사물함 미배정: "사물함 배정" 버튼
+            if (!hasLocker)
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.push(AppRoutes.lockerAssignment(book.id, book.title));
+                },
+                icon: const Icon(Icons.lock_open, size: 16),
+                label: const Text('사물함 배정'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warning,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              )
+            // 사물함 배정됨: "사물함 제어" 버튼
+            else
+              OutlinedButton.icon(
+                onPressed: () => _showLockerControlDialog(book),
+                icon: const Icon(Icons.lock, size: 16),
+                label: const Text('사물함 제어'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            const SizedBox(width: 8),
+            _buildDeleteButton(book),
+          ],
+        );
+      },
+    );
+  }
+
+  /// available/sold 상태 책 액션 버튼들
+  Widget _buildAvailableBookActions(Book book) {
+    return Row(
+      children: [
+        // 수정 버튼
+        OutlinedButton.icon(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('교재 수정 기능은 준비 중입니다')),
+            );
+          },
+          icon: const Icon(Icons.edit, size: 16),
+          label: const Text('수정'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: 8),
+        _buildDeleteButton(book),
+      ],
+    );
+  }
+
+  /// 삭제 버튼
+  Widget _buildDeleteButton(Book book) {
+    return OutlinedButton.icon(
+      onPressed: () => _showDeleteDialog(book),
+      icon: const Icon(Icons.delete_outline, size: 16),
+      label: const Text('삭제'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.error,
+        side: const BorderSide(color: AppColors.error),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
@@ -401,6 +479,243 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
         return '불량';
       default:
         return '알 수 없음';
+    }
+  }
+
+  /// 사물함 제어 다이얼로그
+  Future<void> _showLockerControlDialog(Book book) async {
+    final bookProvider = context.read<BookProvider>();
+    final lockerProvider = context.read<LockerProvider>();
+
+    // 책에 배정된 사물함 조회
+    final lockerId = await bookProvider.getAssignedLockerId(book.id);
+
+    if (!mounted) return;
+
+    if (lockerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('배정된 사물함이 없습니다. 먼저 사물함을 배정해주세요.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    // 사물함 정보 가져오기
+    final locker = await lockerProvider.getLocker(lockerId);
+
+    if (!mounted) return;
+
+    if (locker == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('사물함 정보를 가져올 수 없습니다.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // 사물함 제어 다이얼로그 표시
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _LockerControlDialog(
+        book: book,
+        locker: locker,
+      ),
+    );
+  }
+}
+
+/// 사물함 제어 다이얼로그
+class _LockerControlDialog extends StatefulWidget {
+  final Book book;
+  final Locker locker;
+
+  const _LockerControlDialog({
+    required this.book,
+    required this.locker,
+  });
+
+  @override
+  State<_LockerControlDialog> createState() => _LockerControlDialogState();
+}
+
+class _LockerControlDialogState extends State<_LockerControlDialog> {
+  bool _isLoading = false;
+  bool _isLockerOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            _isLockerOpen ? Icons.lock_open : Icons.lock,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          const Text('사물함 제어'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '사물함 #${widget.locker.lockerNum}',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _isLockerOpen ? '열림' : '닫힘',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _isLockerOpen ? AppColors.success : AppColors.primary,
+                ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _toggleLocker,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(_isLockerOpen ? Icons.lock : Icons.lock_open),
+              label: Text(
+                _isLoading
+                    ? '처리 중...'
+                    : _isLockerOpen
+                        ? '사물함 닫기'
+                        : '사물함 열기',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    _isLockerOpen ? AppColors.warning : AppColors.success,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.info.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info, size: 16, color: AppColors.info),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '안내',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '• 사물함을 열어 책을 넣은 후 반드시 닫아주세요\n'
+                  '• 사물함을 닫으면 판매가 시작됩니다',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('닫기'),
+        ),
+      ],
+    );
+  }
+
+  /// 사물함 열기/닫기
+  Future<void> _toggleLocker() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final lockerProvider = context.read<LockerProvider>();
+      final bookProvider = context.read<BookProvider>();
+
+      final success = _isLockerOpen
+          ? await lockerProvider.closeLocker(widget.locker.id)
+          : await lockerProvider.openLocker(widget.locker.id);
+
+      if (success && mounted) {
+        // 사물함을 닫았을 때 book_status를 available로 업데이트
+        if (!_isLockerOpen) {
+          await bookProvider.updateBookStatus(widget.book.id, 'available');
+
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ 사물함이 닫혔습니다! 판매가 시작되었습니다.'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+
+            // 목록 새로고침
+            final authProvider = context.read<AuthProvider>();
+            if (authProvider.currentUser != null) {
+              bookProvider.fetchMyBooks(authProvider.currentUser!.id);
+            }
+            return;
+          }
+        }
+
+        setState(() => _isLockerOpen = !_isLockerOpen);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isLockerOpen ? '✅ 사물함이 열렸습니다!' : '🔒 사물함이 닫혔습니다!',
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '❌ ${lockerProvider.errorMessage ?? "사물함 제어에 실패했습니다"}',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 오류: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

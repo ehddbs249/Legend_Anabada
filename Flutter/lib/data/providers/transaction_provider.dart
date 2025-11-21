@@ -53,10 +53,14 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title, img_url),
+            book(
+              point_price, 
+              title, 
+              img_url,
+              locker!current_book_id(locker_num)
+            ),
             user:user_id(name),
-            borrower:borrower_id(name),
-            locker:locker_id(locker_num)
+            borrower:borrower_id(name)
           ''')
           .eq('user_id', userId)
           .order('trans_date', ascending: false);
@@ -82,13 +86,23 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title, img_url),
+            book(
+              point_price, 
+              title, 
+              img_url,
+              locker!current_book_id(locker_num)
+            ),
             user:user_id(name),
-            borrower:borrower_id(name),
-            locker:locker_id(locker_num)
+            borrower:borrower_id(name)
           ''')
           .eq('borrower_id', userId)
           .order('trans_date', ascending: false);
+
+      // DEBUG: 첫 번째 응답 출력
+      if (response.isNotEmpty) {
+        print('🔍 Transaction Response Sample:');
+        print(response.first);
+      }
 
       _myBorrowingTransactions = (response as List)
           .map((json) => Transaction.fromJson(json))
@@ -111,14 +125,24 @@ class TransactionProvider with ChangeNotifier {
           .from('book_transaction')
           .select('''
             *,
-            book(point_price, title, img_url),
+            book(
+              point_price, 
+              title, 
+              img_url,
+              locker!current_book_id(locker_num)
+            ),
             user:user_id(name),
-            borrower:borrower_id(name),
-            locker:locker_id(locker_num)
+            borrower:borrower_id(name)
           ''')
           .or('user_id.eq.$userId,borrower_id.eq.$userId')
           .inFilter('trans_status', ['pending', 'active'])
           .order('trans_date', ascending: false);
+
+      // DEBUG: 첫 번째 응답 출력
+      if (response.isNotEmpty) {
+        print('🔍 Active Transaction Response Sample:');
+        print(response.first);
+      }
 
       _activeTransactions = (response as List)
           .map((json) => Transaction.fromJson(json))
@@ -185,15 +209,12 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final response = await Supabase.instance.client
+      await Supabase.instance.client
           .from('book_transaction')
           .update({'trans_status': 'completed'})
-          .eq('trans_id', transactionId)
-          .select()
-          .single();
+          .eq('trans_id', transactionId);
 
-      final transaction = Transaction.fromJson(response);
-      _updateTransactionInLists(transaction);
+      // 로컬 리스트에서 해당 거래 제거
       _activeTransactions.removeWhere((t) => t.id == transactionId);
 
       _setLoading(false);
@@ -212,15 +233,12 @@ class TransactionProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      final response = await Supabase.instance.client
+      await Supabase.instance.client
           .from('book_transaction')
           .update({'trans_status': 'cancelled'})
-          .eq('trans_id', transactionId)
-          .select()
-          .single();
+          .eq('trans_id', transactionId);
 
-      final transaction = Transaction.fromJson(response);
-      _updateTransactionInLists(transaction);
+      // 로컬 리스트에서 해당 거래 제거
       _activeTransactions.removeWhere((t) => t.id == transactionId);
 
       _setLoading(false);

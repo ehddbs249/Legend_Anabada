@@ -32,7 +32,9 @@ class LockerProvider with ChangeNotifier {
           .select()
           .order('locker_num', ascending: true);
 
-      _lockers = (response as List).map((json) => Locker.fromJson(json)).toList();
+      _lockers = (response as List)
+          .map((json) => Locker.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -51,9 +53,12 @@ class LockerProvider with ChangeNotifier {
           .from('locker')
           .select()
           .eq('locker_status', 'available')
+          .isFilter('current_book_id', null) // 책이 배정되지 않은 사물함만
           .order('locker_num', ascending: true);
 
-      _availableLockers = (response as List).map((json) => Locker.fromJson(json)).toList();
+      _availableLockers = (response as List)
+          .map((json) => Locker.fromJson(json))
+          .toList();
       _setLoading(false);
       notifyListeners();
     } catch (e) {
@@ -95,10 +100,7 @@ class LockerProvider with ChangeNotifier {
 
       final response = await Supabase.instance.client
           .from('locker')
-          .update({
-            'locker_status': 'occupied',
-            'trans_id': transactionId,
-          })
+          .update({'locker_status': 'occupied', 'trans_id': transactionId})
           .eq('locker_id', lockerId)
           .select()
           .single();
@@ -125,10 +127,7 @@ class LockerProvider with ChangeNotifier {
 
       final response = await Supabase.instance.client
           .from('locker')
-          .update({
-            'locker_status': 'available',
-            'trans_id': null,
-          })
+          .update({'locker_status': 'available', 'trans_id': null})
           .eq('locker_id', lockerId)
           .select()
           .single();
@@ -194,6 +193,50 @@ class LockerProvider with ChangeNotifier {
 
       // 라즈베리파이 서보모터로 사물함 닫기
       final success = await _lockerService.closeLocker(locker.lockerNum!);
+
+      if (!success) {
+        throw Exception('사물함 잠금장치 제어 실패');
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('사물함 닫기 중 오류가 발생했습니다: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// 사물함 번호로 직접 열기
+  Future<bool> openLockerByNumber(int lockerNum) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final success = await _lockerService.openLocker(lockerNum);
+
+      if (!success) {
+        throw Exception('사물함 잠금장치 제어 실패');
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('사물함 열기 중 오류가 발생했습니다: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  /// 사물함 번호로 직접 닫기
+  Future<bool> closeLockerByNumber(int lockerNum) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final success = await _lockerService.closeLocker(lockerNum);
 
       if (!success) {
         throw Exception('사물함 잠금장치 제어 실패');
@@ -288,13 +331,18 @@ class LockerProvider with ChangeNotifier {
 
   /// 사물함 접근 코드 생성 (미구현)
   @Deprecated('Transaction API를 사용하세요')
-  Future<String?> generateAccessCode(String lockerId, String transactionId) async {
+  Future<String?> generateAccessCode(
+    String lockerId,
+    String transactionId,
+  ) async {
     try {
       _setLoading(true);
       _clearError();
 
       // TODO: Transaction 테이블에서 접근 코드 생성
-      final accessCode = DateTime.now().millisecondsSinceEpoch.toString().substring(6);
+      final accessCode = DateTime.now().millisecondsSinceEpoch
+          .toString()
+          .substring(6);
 
       _setLoading(false);
       notifyListeners();
@@ -309,7 +357,10 @@ class LockerProvider with ChangeNotifier {
   /// 특정 위치의 사물함 그리드 가져오기 (2x2)
   @Deprecated('lockerNum으로 그리드를 계산하세요')
   List<List<Locker?>> getLockerGrid(String location) {
-    List<List<Locker?>> grid = List.generate(2, (index) => List.filled(2, null));
+    List<List<Locker?>> grid = List.generate(
+      2,
+      (index) => List.filled(2, null),
+    );
 
     for (final locker in _lockers) {
       if (locker.lockerNum != null) {
@@ -327,9 +378,13 @@ class LockerProvider with ChangeNotifier {
 
   /// 사물함 통계
   Map<String, int> getLockerStats() {
-    final available = _lockers.where((l) => l.lockerStatus == 'available').length;
+    final available = _lockers
+        .where((l) => l.lockerStatus == 'available')
+        .length;
     final occupied = _lockers.where((l) => l.lockerStatus == 'occupied').length;
-    final maintenance = _lockers.where((l) => l.lockerStatus == 'maintenance').length;
+    final maintenance = _lockers
+        .where((l) => l.lockerStatus == 'maintenance')
+        .length;
     final broken = _lockers.where((l) => l.isBroken == true).length;
 
     return {
@@ -357,6 +412,32 @@ class LockerProvider with ChangeNotifier {
   void clearSelectedLocker() {
     _selectedLocker = null;
     notifyListeners();
+  }
+
+  /// 책을 사물함에 배정
+  Future<bool> assignBookToLocker(String lockerId, String bookId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final response = await Supabase.instance.client
+          .from('locker')
+          .update({'current_book_id': bookId, 'locker_status': 'occupied'})
+          .eq('locker_id', lockerId)
+          .select()
+          .single();
+
+      final locker = Locker.fromJson(response);
+      _updateLockerInLists(locker);
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('사물함 배정 중 오류가 발생했습니다: ${e.toString()}');
+      _setLoading(false);
+      return false;
+    }
   }
 
   /// 모든 목록에서 사물함 업데이트

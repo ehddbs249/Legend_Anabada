@@ -34,6 +34,9 @@ class Book {
   /// 등록일 ← registered_at
   final DateTime registeredAt;
 
+  /// 책 상태 (pending, available, sold, deleted) ← book_status
+  final String bookStatus;
+
   const Book({
     required this.id,
     required this.userId,
@@ -46,6 +49,7 @@ class Book {
     this.dmgTag,
     this.imgUrl,
     required this.registeredAt,
+    this.bookStatus = 'pending',
   });
 
   /// JSON에서 Book 객체 생성
@@ -62,6 +66,7 @@ class Book {
       dmgTag: json['dmg_tag'] as String?,
       imgUrl: json['img_url'] as String?,
       registeredAt: DateTime.parse(json['registered_at'] as String),
+      bookStatus: json['book_status'] as String? ?? 'pending',
     );
   }
 
@@ -79,6 +84,7 @@ class Book {
       'dmg_tag': dmgTag,
       'img_url': imgUrl,
       'registered_at': registeredAt.toIso8601String(),
+      'book_status': bookStatus,
     };
   }
 
@@ -95,6 +101,7 @@ class Book {
     String? dmgTag,
     String? imgUrl,
     DateTime? registeredAt,
+    String? bookStatus,
   }) {
     return Book(
       id: id ?? this.id,
@@ -108,6 +115,7 @@ class Book {
       dmgTag: dmgTag ?? this.dmgTag,
       imgUrl: imgUrl ?? this.imgUrl,
       registeredAt: registeredAt ?? this.registeredAt,
+      bookStatus: bookStatus ?? this.bookStatus,
     );
   }
 
@@ -126,6 +134,25 @@ class Book {
         return '미지정';
     }
   }
+
+  /// 책 등록 상태 한글 표시
+  String get bookStatusDisplayName {
+    switch (bookStatus) {
+      case 'pending':
+        return '등록 대기 중';
+      case 'available':
+        return '판매 가능';
+      case 'sold':
+        return '판매 완료';
+      case 'deleted':
+        return '삭제됨';
+      default:
+        return '알 수 없음';
+    }
+  }
+
+  /// 검색 가능한 책인지 확인
+  bool get isAvailable => bookStatus == 'available';
 
   @override
   bool operator ==(Object other) =>

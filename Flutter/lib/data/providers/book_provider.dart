@@ -74,6 +74,7 @@ class BookProvider with ChangeNotifier {
         var queryBuilder = Supabase.instance.client
             .from('book')
             .select()
+            .eq('book_status', 'available') // 판매 가능한 책만 검색
             .or(
               'title.ilike.%$query%,author.ilike.%$query%,publisher.ilike.%$query%',
             );
@@ -117,27 +118,29 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      // TODO: 추천 알고리즘 구현 (현재는 거래되지 않은 최신 책 반환)
-      // 거래가 진행 중이거나 완료된 책을 제외 (trans_status가 null인 책만)
+      // book_status가 active이고 거래가 없는 책만 최신순으로 10권 추천
       final allBooks = await Supabase.instance.client
           .from('book')
-          .select('''
-            *,
-            book_transaction!book_transaction_book_id_fkey(trans_status)
-          ''')
+          .select()
+          .eq('book_status', 'available') // active 상태인 책만
           .order('registered_at', ascending: false);
 
-      // trans_status가 null인 책만 필터링 (거래 내역이 없는 책)
-      final availableBooks = (allBooks as List).where((json) {
-        final transactions = json['book_transaction'] as List?;
-        return transactions == null || transactions.isEmpty;
-      }).toList();
+      // book_transaction에 있는 모든 책 ID 조회
+      final allTransactions = await Supabase.instance.client
+          .from('book_transaction')
+          .select('book_id');
 
-      // 최대 10권까지만 추천
-      _recommendedBooks = availableBooks
+      final bookIdsInTransaction = (allTransactions as List)
+          .map((e) => e['book_id'] as String)
+          .toSet();
+
+      // book_transaction에 없는 책만 필터링
+      final response = (allBooks as List)
+          .where((book) => !bookIdsInTransaction.contains(book['book_id']))
           .take(10)
-          .map((json) => Book.fromJson(json))
           .toList();
+
+      _recommendedBooks = response.map((json) => Book.fromJson(json)).toList();
 
       _setLoading(false);
       notifyListeners();
@@ -168,9 +171,25 @@ class BookProvider with ChangeNotifier {
     }
   }
 
+  /// 책에 배정된 사물함 ID 조회
+  Future<String?> getAssignedLockerId(String bookId) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('locker')
+          .select('locker_id')
+          .eq('current_book_id', bookId)
+          .maybeSingle();
+
+      return response?['locker_id'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// 책 등록
   /// imageFile: 업로드할 이미지 파일 (선택적)
-  Future<bool> registerBook(Book book, {XFile? imageFile}) async {
+  /// 성공 시 등록된 Book 객체 반환, 실패 시 null 반환
+  Future<Book?> registerBook(Book book, {XFile? imageFile}) async {
     try {
       _setLoading(true);
       _clearError();
@@ -194,6 +213,7 @@ class BookProvider with ChangeNotifier {
         'dmg_tag': book.dmgTag,
         'img_url': imageUrl ?? book.imgUrl,
         'registered_at': DateTime.now().toIso8601String(),
+        'book_status': 'pending', // 명시적으로 pending 상태 설정
       };
 
       final response = await Supabase.instance.client
@@ -208,11 +228,11 @@ class BookProvider with ChangeNotifier {
 
       _setLoading(false);
       notifyListeners();
-      return true;
+      return newBook;
     } catch (e) {
       _setError('책 등록 중 오류가 발생했습니다: ${e.toString()}');
       _setLoading(false);
-      return false;
+      return null;
     }
   }
 
@@ -308,23 +328,32 @@ class BookProvider with ChangeNotifier {
     }
   }
 
-  /// 책 상태 업데이트 (대여, 반납 등)
-  /// @Deprecated: Book 모델에 status 필드가 제거되었습니다.
-  /// 책의 대여 상태는 BookTransaction을 통해 추적됩니다.
-  @Deprecated('Use BookTransaction to track rental status instead')
-  Future<bool> updateBookStatus(String bookId, String status) async {
+  /// 책 상태 업데이트 (pending, available, sold, deleted)
+  Future<bool> updateBookStatus(String bookId, String newStatus) async {
     try {
       _setLoading(true);
       _clearError();
 
-      // 더 이상 사용되지 않음 - BookTransaction으로 상태 추적
-      // await _apiService.updateBookStatus(bookId, status);
+      final response = await Supabase.instance.client
+          .from('book')
+          .update({'book_status': newStatus})
+          .eq('book_id', bookId)
+          .select()
+          .single();
+
+      final updatedBook = Book.fromJson(response);
+
+      // 목록에서 업데이트
+      _updateBookInList(_books, updatedBook);
+      _updateBookInList(_myBooks, updatedBook);
+      _updateBookInList(_searchResults, updatedBook);
+      _updateBookInList(_recommendedBooks, updatedBook);
 
       _setLoading(false);
       notifyListeners();
       return true;
     } catch (e) {
-      _setError('책 상태 업데이트 중 오류가 발생했습니다: ${e.toString()}');
+      _setError('책 상태 업데이트 실패: ${e.toString()}');
       _setLoading(false);
       return false;
     }

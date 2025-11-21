@@ -64,10 +64,26 @@ class Transaction {
     int pointPrice = 0;
     String? bookTitle;
     String? bookImgUrl;
+    int? lockerNum;
+
     if (json['book'] != null && json['book'] is Map) {
       pointPrice = json['book']['point_price'] as int? ?? 0;
       bookTitle = json['book']['title'] as String?;
       bookImgUrl = json['book']['img_url'] as String?;
+
+      // book 안에 locker 정보가 조인되어 있으면 가져오기
+      // Supabase가 locker를 배열로 반환하므로 첫 번째 요소 가져오기
+      if (json['book']['locker'] != null) {
+        if (json['book']['locker'] is List &&
+            (json['book']['locker'] as List).isNotEmpty) {
+          final lockerData = (json['book']['locker'] as List).first;
+          if (lockerData is Map) {
+            lockerNum = lockerData['locker_num'] as int?;
+          }
+        } else if (json['book']['locker'] is Map) {
+          lockerNum = json['book']['locker']['locker_num'] as int?;
+        }
+      }
     }
 
     // user (판매자) 정보가 조인되어 있으면 가져오기
@@ -80,12 +96,6 @@ class Transaction {
     String? borrowerName;
     if (json['borrower'] != null && json['borrower'] is Map) {
       borrowerName = json['borrower']['name'] as String?;
-    }
-
-    // locker 정보가 조인되어 있으면 가져오기
-    int? lockerNum;
-    if (json['locker'] != null && json['locker'] is Map) {
-      lockerNum = json['locker']['locker_num'] as int?;
     }
 
     return Transaction(
@@ -176,10 +186,28 @@ class Transaction {
   bool get isActive => transStatus == 'active';
 
   /// 사물함 배정 여부
-  bool get hasLocker => lockerId != null;
+  bool get hasLocker {
+    print(
+      '🔍 hasLocker check: lockerNum = $lockerNum, result = ${lockerNum != null}',
+    );
+    return lockerNum != null;
+  }
 
-  /// 사물함 접근 가능 여부 (진행 중이고 사물함이 배정된 경우)
-  bool get canAccessLocker => isActive && hasLocker;
+  /// 사물함 접근 가능 여부 (진행 중이고 사물함이 배정되고 구매자인 경우)
+  /// [currentUserId]: 현재 로그인한 사용자 ID
+  bool canAccessLocker(String currentUserId) {
+    final isBorrower = borrowerId == currentUserId;
+    print('🔍 canAccessLocker check:');
+    print('   - transStatus: $transStatus');
+    print('   - isActive: $isActive');
+    print('   - lockerNum: $lockerNum');
+    print('   - hasLocker: $hasLocker');
+    print('   - currentUserId: $currentUserId');
+    print('   - borrowerId: $borrowerId');
+    print('   - isBorrower: $isBorrower');
+    print('   - result: ${isActive && hasLocker && isBorrower}');
+    return isActive && hasLocker && isBorrower;
+  }
 
   @override
   bool operator ==(Object other) =>

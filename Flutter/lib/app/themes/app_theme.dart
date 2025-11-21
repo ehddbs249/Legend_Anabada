@@ -108,7 +108,9 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppSpacing.textFieldRadius),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
-        labelStyle: AppTypography.labelMedium.withColor(AppColors.textSecondary),
+        labelStyle: AppTypography.labelMedium.withColor(
+          AppColors.textSecondary,
+        ),
         hintStyle: AppTypography.placeholder,
         prefixIconColor: AppColors.textTertiary,
         suffixIconColor: AppColors.textTertiary,
@@ -159,12 +161,11 @@ class AppTheme {
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         labelStyle: AppTypography.tabLabel,
-        unselectedLabelStyle: AppTypography.tabLabel.withColor(AppColors.textSecondary),
+        unselectedLabelStyle: AppTypography.tabLabel.withColor(
+          AppColors.textSecondary,
+        ),
         indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(
-            color: AppColors.primary,
-            width: 3,
-          ),
+          borderSide: BorderSide(color: AppColors.primary, width: 3),
           insets: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         ),
         indicatorSize: TabBarIndicatorSize.label,

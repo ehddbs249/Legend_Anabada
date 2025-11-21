@@ -10,6 +10,7 @@ import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/book_provider.dart';
 import '../../../data/providers/category_provider.dart';
 import '../../../data/models/book.dart';
+import '../../locker/screens/locker_assignment_screen.dart';
 
 class RegisterBookScreen extends StatefulWidget {
   final Map<String, dynamic>? ocrData;
@@ -425,15 +426,23 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       );
 
       // 책 등록 (이미지 파일 포함)
-      final success = await bookProvider.registerBook(
+      final registeredBook = await bookProvider.registerBook(
         book,
         imageFile: _images.isNotEmpty ? _images.first : null,
       );
 
-      if (success) {
-        _showSnackBar('교재가 성공적으로 등록되었습니다!');
+      if (registeredBook != null) {
+        _showSnackBar('교재가 등록되었습니다. 사물함 배정을 진행합니다.');
         if (mounted) {
-          context.go(AppRoutes.home);
+          // 사물함 배정 바텀시트 표시
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => LockerAssignmentScreen(
+              bookId: registeredBook.id,
+              bookTitle: registeredBook.title,
+            ),
+          );
         }
       } else {
         _showSnackBar(bookProvider.errorMessage ?? '교재 등록에 실패했습니다');

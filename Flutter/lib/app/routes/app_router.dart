@@ -15,6 +15,7 @@ import '../../features/profile/screens/settings_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/locker/screens/locker_screen.dart';
 import '../../features/locker/screens/locker_detail_screen.dart';
+import '../../features/locker/screens/locker_assignment_screen.dart';
 import '../../features/ocr/screens/ocr_camera_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../screens/main_screen.dart';
@@ -152,6 +153,20 @@ class AppRouter {
         },
       ),
 
+      // 사물함 배정 화면
+      GoRoute(
+        path: '/locker-assignment',
+        name: 'locker-assignment',
+        builder: (context, state) {
+          final bookId = state.uri.queryParameters['bookId']!;
+          final bookTitle = state.uri.queryParameters['bookTitle'] ?? '';
+          return LockerAssignmentScreen(
+            bookId: bookId,
+            bookTitle: bookTitle,
+          );
+        },
+      ),
+
       // 알림 화면
       GoRoute(
         path: '/notifications',
@@ -254,6 +269,18 @@ class AppRoutes {
         if (bookTitle != null) 'bookTitle': bookTitle,
         if (transactionId != null) 'transactionId': transactionId,
         if (pinCode != null) 'pinCode': pinCode,
+      },
+    );
+    return uri.toString();
+  }
+
+  /// 사물함 배정 화면 경로 생성
+  static String lockerAssignment(String bookId, String bookTitle) {
+    final uri = Uri(
+      path: '/locker-assignment',
+      queryParameters: {
+        'bookId': bookId,
+        if (bookTitle.isNotEmpty) 'bookTitle': bookTitle,
       },
     );
     return uri.toString();
