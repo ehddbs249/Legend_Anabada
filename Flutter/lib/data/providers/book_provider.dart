@@ -260,9 +260,25 @@ class BookProvider with ChangeNotifier {
 
   /// 책 삭제
   Future<bool> deleteBook(String bookId) async {
+    String? deleteError;
+
     try {
       _setLoading(true);
       _clearError();
+
+      // 진행 중인 거래 확인
+      final activeTransactions = await Supabase.instance.client
+          .from('book_transaction')
+          .select()
+          .eq('book_id', bookId)
+          .inFilter('trans_status', ['active', 'pending']);
+
+      if (activeTransactions.isNotEmpty) {
+        deleteError = '진행 중인 거래가 있는 교재는 삭제할 수 없습니다.';
+        _setLoading(false);
+        _errorMessage = deleteError; // 에러 메시지만 저장 (notifyListeners 호출 안 함)
+        return false;
+      }
 
       await Supabase.instance.client
           .from('book')
@@ -279,8 +295,15 @@ class BookProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _setError('책 삭제 중 오류가 발생했습니다: ${e.toString()}');
+      // PostgreSQL 외래 키 오류 처리
+      if (e.toString().contains('foreign key') ||
+          e.toString().contains('violates')) {
+        deleteError = '진행 중인 거래가 있는 교재는 삭제할 수 없습니다.';
+      } else {
+        deleteError = '책 삭제 중 오류가 발생했습니다.';
+      }
       _setLoading(false);
+      _errorMessage = deleteError; // 에러 메시지만 저장 (notifyListeners 호출 안 함)
       return false;
     }
   }

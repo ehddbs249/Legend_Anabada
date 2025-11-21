@@ -447,119 +447,107 @@ class _TransactionDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      padding: const EdgeInsets.all(20),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text('거래 상세', style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    children: [
-                      _DetailRow(label: '거래 번호', value: transaction.id),
-                      _DetailRow(
-                        label: '거래 일시',
-                        value: _formatDateTime(transaction.transDate),
+            ),
+            const SizedBox(height: 20),
+            Text('거래 상세', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 20),
+            _DetailRow(
+              label: '거래 일시',
+              value: _formatDateTime(transaction.transDate),
+            ),
+            _DetailRow(
+              label: '거래 상태',
+              value: transaction.transStatusDisplayName,
+            ),
+            _DetailRow(
+              label: '책 제목',
+              value: transaction.bookTitle ?? transaction.bookId,
+            ),
+            _DetailRow(
+              label: '판매자',
+              value: transaction.sellerName ?? transaction.userId,
+            ),
+            if (transaction.borrowerId != null)
+              _DetailRow(
+                label: '구매자',
+                value:
+                    transaction.borrowerName ??
+                    transaction.borrowerId!,
+              ),
+            // 사물함 정보 표시
+            if (transaction.hasLocker) ...[
+              _DetailRow(
+                label: '사물함 번호',
+                value: '#${transaction.lockerNum}',
+              ),
+            ],
+            const SizedBox(height: 20),
+            if (transaction.transStatus == 'active' ||
+                transaction.transStatus == 'pending') ...[
+              // 사물함 접근 버튼
+              if (transaction.canAccessLocker)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showLockerAccessDialog(context, transaction);
+                    },
+                    icon: const Icon(Icons.lock_open),
+                    label: const Text('사물함 접근'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
                       ),
-                      _DetailRow(
-                        label: '거래 상태',
-                        value: transaction.transStatusDisplayName,
-                      ),
-                      _DetailRow(
-                        label: '책 제목',
-                        value: transaction.bookTitle ?? transaction.bookId,
-                      ),
-                      _DetailRow(
-                        label: '판매자',
-                        value: transaction.sellerName ?? transaction.userId,
-                      ),
-                      if (transaction.borrowerId != null)
-                        _DetailRow(
-                          label: '구매자',
-                          value:
-                              transaction.borrowerName ??
-                              transaction.borrowerId!,
-                        ),
-                      // 사물함 정보 표시
-                      if (transaction.hasLocker) ...[
-                        _DetailRow(
-                          label: '사물함 번호',
-                          value: '#${transaction.lockerNum}',
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      if (transaction.transStatus == 'active' ||
-                          transaction.transStatus == 'pending') ...[
-                        // 사물함 접근 버튼
-                        if (transaction.canAccessLocker)
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _showLockerAccessDialog(context, transaction);
-                              },
-                              icon: const Icon(Icons.lock_open),
-                              label: const Text('사물함 접근'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.success,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: null,
-                              child: const Text('사물함 미배정'),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              _showCancelDialog(context);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                              side: const BorderSide(color: AppColors.error),
-                            ),
-                            child: const Text('거래 취소'),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: null,
+                    child: const Text('사물함 미배정'),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    _showCancelDialog(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                  child: const Text('거래 취소'),
                 ),
               ),
             ],
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -599,6 +587,17 @@ class _TransactionDetailSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 const Text('사물함 제어'),
+                const Spacer(),
+                IconButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.pop(dialogContext);
+                        },
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
               ],
             ),
             content: Column(
@@ -627,6 +626,89 @@ class _TransactionDetailSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            setState(() => isLoading = true);
+
+                            try {
+                              final lockerProvider = context.read<LockerProvider>();
+                              final success = isLockerOpen
+                                  ? await lockerProvider.closeLocker(
+                                      transaction.lockerId!,
+                                    )
+                                  : await lockerProvider.openLocker(
+                                      transaction.lockerId!,
+                                      '', // 접근 코드 불필요
+                                    );
+
+                              if (success && dialogContext.mounted) {
+                                setState(() => isLockerOpen = !isLockerOpen);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isLockerOpen
+                                          ? '✅ 사물함이 열렸습니다!'
+                                          : '🔒 사물함이 닫혔습니다!',
+                                    ),
+                                    backgroundColor: AppColors.success,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              } else if (dialogContext.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '❌ ${lockerProvider.errorMessage ?? "사물함 제어에 실패했습니다"}',
+                                    ),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (dialogContext.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('❌ 오류: ${e.toString()}'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            } finally {
+                              if (dialogContext.mounted) {
+                                setState(() => isLoading = false);
+                              }
+                            }
+                          },
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(isLockerOpen ? Icons.lock : Icons.lock_open),
+                    label: Text(
+                      isLoading
+                          ? '제어 중...'
+                          : isLockerOpen
+                          ? '사물함 닫기'
+                          : '사물함 열기',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLockerOpen
+                          ? AppColors.warning
+                          : AppColors.success,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -655,94 +737,6 @@ class _TransactionDetailSheet extends StatelessWidget {
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: isLoading
-                    ? null
-                    : () {
-                        Navigator.pop(dialogContext);
-                      },
-                child: const Text('닫기'),
-              ),
-              ElevatedButton.icon(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        setState(() => isLoading = true);
-
-                        try {
-                          final lockerProvider = context.read<LockerProvider>();
-                          final success = isLockerOpen
-                              ? await lockerProvider.closeLocker(
-                                  transaction.lockerId!,
-                                )
-                              : await lockerProvider.openLocker(
-                                  transaction.lockerId!,
-                                  '', // 접근 코드 불필요
-                                );
-
-                          if (success && dialogContext.mounted) {
-                            setState(() => isLockerOpen = !isLockerOpen);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isLockerOpen
-                                      ? '✅ 사물함이 열렸습니다!'
-                                      : '🔒 사물함이 닫혔습니다!',
-                                ),
-                                backgroundColor: AppColors.success,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          } else if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '❌ ${lockerProvider.errorMessage ?? "사물함 제어에 실패했습니다"}',
-                                ),
-                                backgroundColor: AppColors.error,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('❌ 오류: ${e.toString()}'),
-                                backgroundColor: AppColors.error,
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (dialogContext.mounted) {
-                            setState(() => isLoading = false);
-                          }
-                        }
-                      },
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Icon(isLockerOpen ? Icons.lock : Icons.lock_open),
-                label: Text(
-                  isLoading
-                      ? '제어 중...'
-                      : isLockerOpen
-                      ? '사물함 닫기'
-                      : '사물함 열기',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isLockerOpen
-                      ? AppColors.warning
-                      : AppColors.success,
-                ),
-              ),
-            ],
           );
         },
       ),

@@ -330,10 +330,6 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
         content: Text('${book.title}을(를) 삭제하시겠습니까?\n이 작업은 취소할 수 없습니다.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
             onPressed: () {
               Navigator.pop(context);
               _deleteBook(book);
@@ -343,6 +339,10 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
             ),
             child: const Text('삭제'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
         ],
       ),
     );
@@ -350,23 +350,21 @@ class _MyBooksScreenState extends State<MyBooksScreen> {
 
   /// 교재 삭제
   Future<void> _deleteBook(Book book) async {
-    try {
-      final provider = context.read<BookProvider>();
-      await provider.deleteBook(book.id);
+    final provider = context.read<BookProvider>();
+    final success = await provider.deleteBook(book.id);
 
-      if (mounted) {
+    if (mounted) {
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('교재가 삭제되었습니다'),
             backgroundColor: AppColors.success,
           ),
         );
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('교재 삭제에 실패했습니다: ${e.toString()}'),
+            content: Text(provider.errorMessage ?? '교재 삭제에 실패했습니다'),
             backgroundColor: AppColors.error,
           ),
         );

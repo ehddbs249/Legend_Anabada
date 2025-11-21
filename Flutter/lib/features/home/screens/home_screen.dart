@@ -350,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _buildQuickActionCard(
             context,
             'OCR 촬영',
-            '카메라로 교재를 촬영하여\n자동으로 정보를 추출하세요',
+            '교재를 촬영하여 자동으로\n정보를 추출하세요',
             Icons.camera_alt_rounded,
             const Color(0xFFFFF3E0),
             const Color(0xFFFF9800),
