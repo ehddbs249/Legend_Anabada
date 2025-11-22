@@ -432,17 +432,112 @@ class _RegisterBookScreenState extends State<RegisterBookScreen> {
       );
 
       if (registeredBook != null) {
-        _showSnackBar('교재가 등록되었습니다. 사물함 배정을 진행합니다.');
         if (mounted) {
-          // 사물함 배정 바텀시트 표시
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (context) => LockerAssignmentScreen(
-              bookId: registeredBook.id,
-              bookTitle: registeredBook.title,
-            ),
-          );
+          // 변수 저장
+          final bookId = registeredBook.id;
+          final bookTitle = registeredBook.title;
+
+          // 홈으로 이동
+          context.go('/home');
+
+          // 다이얼로그 표시
+          Future.delayed(const Duration(milliseconds: 500), () {
+            final navigatorContext = AppRouter.navigatorKey.currentContext;
+            if (navigatorContext == null) return;
+
+            showDialog(
+              context: navigatorContext,
+              barrierDismissible: true,
+              builder: (dialogContext) => Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  width: 320,
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        size: 56,
+                        color: AppColors.success,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '책 등록이 완료되었습니다!',
+                        style: Theme.of(dialogContext).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '책을 판매하기 위해서는\n사물함 등록이 필요합니다.\n\n사물함을 지금 등록하러 가시겠습니까?',
+                        style: Theme.of(dialogContext).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: AppColors.textSecondary,
+                              height: 1.5,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            // 사물함 배정 다이얼로그 표시
+                            final navigatorContext =
+                                AppRouter.navigatorKey.currentContext;
+                            if (navigatorContext == null) return;
+                            showDialog(
+                              context: navigatorContext,
+                              barrierDismissible: true,
+                              builder: (lockerDialogContext) =>
+                                  LockerAssignmentScreen(
+                                    bookId: bookId,
+                                    bookTitle: bookTitle,
+                                  ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text(
+                            '사물함 등록하기',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.divider),
+                          ),
+                          child: const Text(
+                            '나중에 등록하기',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          });
         }
       } else {
         _showSnackBar(bookProvider.errorMessage ?? '교재 등록에 실패했습니다');

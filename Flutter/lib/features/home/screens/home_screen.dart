@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -778,12 +779,10 @@ class _HomeScreenState extends State<HomeScreen> {
           // 로딩 다이얼로그 닫기
           if (mounted) Navigator.of(context).pop();
 
-          // OCR 결과와 이미지를 등록 화면으로 전달
+          // OCR 결과 다이얼로그 표시
           if (mounted) {
-            // XFile을 Uint8List로 변환
             final imageBytes = await image.readAsBytes();
-            final dataToPass = {...result, 'imageBytes': imageBytes};
-            context.push('/register', extra: dataToPass);
+            _showOcrResultDialog(result, imageBytes);
           }
         } catch (e) {
           // 로딩 다이얼로그 닫기
@@ -804,5 +803,67 @@ class _HomeScreenState extends State<HomeScreen> {
         ).showSnackBar(SnackBar(content: Text('이미지 선택 실패: ${e.toString()}')));
       }
     }
+  }
+
+  /// OCR 결과 다이얼로그 표시
+  void _showOcrResultDialog(Map<String, dynamic> result, Uint8List imageBytes) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('OCR 결과'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildOcrResultItem('제목', result['title'] ?? '인식되지 않음'),
+              const SizedBox(height: 8),
+              _buildOcrResultItem('저자', result['author'] ?? '인식되지 않음'),
+              const SizedBox(height: 8),
+              _buildOcrResultItem('출판사', result['publisher'] ?? '인식되지 않음'),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              // OCR 결과와 이미지를 함께 전달
+              final dataToPass = {...result, 'imageBytes': imageBytes};
+              context.push('/register', extra: dataToPass);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('등록하기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('취소'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOcrResultItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
   }
 }

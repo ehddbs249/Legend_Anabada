@@ -21,7 +21,11 @@ import '../../features/notifications/screens/notifications_screen.dart';
 import '../../screens/main_screen.dart';
 
 class AppRouter {
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final GoRouter _router = GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/',
     routerNeglect: false,
     routes: [
@@ -98,24 +102,30 @@ class AppRouter {
           return CustomTransitionPage(
             key: state.pageKey,
             child: BookDetailScreen(bookId: bookId),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              // 열릴 때: 0.8배에서 1.0배로 확대 + 페이드인
-              var scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              );
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  // 열릴 때: 0.8배에서 1.0배로 확대 + 페이드인
+                  var scaleAnimation = Tween<double>(begin: 0.8, end: 1.0)
+                      .animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      );
 
-              var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              );
+                  var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0)
+                      .animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        ),
+                      );
 
-              return FadeTransition(
-                opacity: fadeAnimation,
-                child: ScaleTransition(
-                  scale: scaleAnimation,
-                  child: child,
-                ),
-              );
-            },
+                  return FadeTransition(
+                    opacity: fadeAnimation,
+                    child: ScaleTransition(scale: scaleAnimation, child: child),
+                  );
+                },
           );
         },
       ),
@@ -141,8 +151,10 @@ class AppRouter {
         builder: (context, state) {
           final lockerId = state.pathParameters['lockerId']!;
           final bookTitle = state.uri.queryParameters['bookTitle'] ?? '';
-          final transactionId = state.uri.queryParameters['transactionId'] ?? '';
-          final pinCode = state.uri.queryParameters['pinCode'] ?? '1234'; // 기본값 또는 실제 PIN
+          final transactionId =
+              state.uri.queryParameters['transactionId'] ?? '';
+          final pinCode =
+              state.uri.queryParameters['pinCode'] ?? '1234'; // 기본값 또는 실제 PIN
 
           return LockerDetailScreen(
             lockerId: lockerId,
@@ -160,10 +172,7 @@ class AppRouter {
         builder: (context, state) {
           final bookId = state.uri.queryParameters['bookId']!;
           final bookTitle = state.uri.queryParameters['bookTitle'] ?? '';
-          return LockerAssignmentScreen(
-            bookId: bookId,
-            bookTitle: bookTitle,
-          );
+          return LockerAssignmentScreen(bookId: bookId, bookTitle: bookTitle);
         },
       ),
 
@@ -226,9 +235,9 @@ class AppRouter {
             const SizedBox(height: 8),
             Text(
               '경로: ${state.uri}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -262,7 +271,12 @@ class AppRoutes {
   static String bookDetail(String bookId) => '/book/$bookId';
 
   /// 사물함 상세 화면 경로 생성
-  static String lockerDetail(String lockerId, {String? bookTitle, String? transactionId, String? pinCode}) {
+  static String lockerDetail(
+    String lockerId, {
+    String? bookTitle,
+    String? transactionId,
+    String? pinCode,
+  }) {
     final uri = Uri(
       path: '/locker/$lockerId',
       queryParameters: {

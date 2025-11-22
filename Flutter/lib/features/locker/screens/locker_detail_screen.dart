@@ -24,7 +24,7 @@ class LockerDetailScreen extends StatefulWidget {
 }
 
 class _LockerDetailScreenState extends State<LockerDetailScreen> {
-  bool _isLockerOpen = false;
+  bool _isLockerOpen = true; // 사물함 배정 후 열린 상태로 시작
   bool _isLoading = false;
 
   /// 사물함 열기
@@ -33,7 +33,10 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
 
     try {
       final lockerProvider = context.read<LockerProvider>();
-      final success = await lockerProvider.openLocker(widget.lockerId, widget.pinCode);
+      final success = await lockerProvider.openLocker(
+        widget.lockerId,
+        widget.pinCode,
+      );
 
       if (success && mounted) {
         setState(() => _isLockerOpen = true);
@@ -46,7 +49,9 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ ${lockerProvider.errorMessage ?? "사물함 열기에 실패했습니다"}'),
+            content: Text(
+              '❌ ${lockerProvider.errorMessage ?? "사물함 열기에 실패했습니다"}',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -84,7 +89,9 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ ${lockerProvider.errorMessage ?? "사물함 닫기에 실패했습니다"}'),
+            content: Text(
+              '❌ ${lockerProvider.errorMessage ?? "사물함 닫기에 실패했습니다"}',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -103,21 +110,71 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
     }
   }
 
+  /// 사물함 열기 확인 다이얼로그
+  Future<void> _showOpenConfirmDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('사물함 열기'),
+        content: const Text('사물함을 정말 여시겠습니까?\n\n주의: 사물함을 열 경우 다시 닫을 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('아니오'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('예'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _openLocker();
+    }
+  }
+
+  /// 사물함 닫기 확인 다이얼로그
+  Future<void> _showCloseConfirmDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('사물함 닫기'),
+        content: const Text('사물함을 정말 닫으시겠습니까?\n\n주의: 사물함을 닫을 경우 다시 열 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('아니오'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('예'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _closeLocker();
+    }
+  }
+
   /// 사물함 토글 (열림 ↔ 닫힘)
   Future<void> _toggleLocker() async {
     if (_isLockerOpen) {
-      await _closeLocker();
+      await _showCloseConfirmDialog();
     } else {
-      await _openLocker();
+      await _showOpenConfirmDialog();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('사물함 ${widget.lockerId}'),
-      ),
+      appBar: AppBar(title: Text('사물함 ${widget.lockerId}')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -138,14 +195,19 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
                       Icon(
                         _isLockerOpen ? Icons.lock_open : Icons.lock,
                         size: 48,
-                        color: _isLockerOpen ? AppColors.success : AppColors.primary,
+                        color: _isLockerOpen
+                            ? AppColors.success
+                            : AppColors.primary,
                       ),
                       const SizedBox(width: 12),
                       Text(
                         _isLockerOpen ? '열림' : '닫힘',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: _isLockerOpen ? AppColors.success : AppColors.primary,
+                              color: _isLockerOpen
+                                  ? AppColors.success
+                                  : AppColors.primary,
                             ),
                       ),
                     ],
@@ -165,7 +227,8 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
                     ),
                     child: Text(
                       widget.pinCode,
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             letterSpacing: 8,
                             color: AppColors.primary,
@@ -179,7 +242,7 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primaryLight.withValues(alpha:0.1),
+                color: AppColors.primaryLight.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -194,9 +257,9 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
                       Text(
                         widget.lockerId,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -235,9 +298,11 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha:0.1),
+                color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warning.withValues(alpha:0.3)),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.3),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,9 +317,8 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
                       const SizedBox(width: 8),
                       Text(
                         '이용 안내',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.warning,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: AppColors.warning),
                       ),
                     ],
                   ),
@@ -286,12 +350,17 @@ class _LockerDetailScreenState extends State<LockerDetailScreen> {
                   _isLoading
                       ? '제어 중...'
                       : _isLockerOpen
-                          ? '사물함 닫기'
-                          : '사물함 열기',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ? '사물함 닫기'
+                      : '사물함 열기',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isLockerOpen ? AppColors.warning : AppColors.success,
+                  backgroundColor: _isLockerOpen
+                      ? AppColors.warning
+                      : AppColors.success,
                 ),
               ),
             ),

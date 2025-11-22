@@ -199,13 +199,6 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.pop();
-            },
-            child: const Text('취소'),
-          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
@@ -214,6 +207,13 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
               context.push('/register', extra: dataToPass);
             },
             child: const Text('등록하기'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.pop();
+            },
+            child: const Text('취소'),
           ),
         ],
       ),

@@ -636,6 +636,38 @@ class _TransactionDetailSheet extends StatelessWidget {
                     onPressed: isLoading
                         ? null
                         : () async {
+                            // 확인 다이얼로그 표시
+                            final confirmed = await showDialog<bool>(
+                              context: dialogContext,
+                              builder: (confirmContext) => AlertDialog(
+                                title: Text(isLockerOpen ? '사물함 닫기' : '사물함 열기'),
+                                content: Text(
+                                  isLockerOpen
+                                      ? '사물함을 정말 닫으시겠습니까?\n\n주의: 사물함을 닫을 경우 다시 열 수 없습니다.'
+                                      : '사물함을 정말 여시겠습니까?\n\n주의: 사물함을 열 경우 다시 닫을 수 없습니다.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(confirmContext).pop(false),
+                                    child: const Text('아니오'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.of(confirmContext).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isLockerOpen
+                                          ? AppColors.warning
+                                          : AppColors.success,
+                                    ),
+                                    child: const Text('예'),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirmed != true) return;
+
                             setState(() => isLoading = true);
 
                             try {
@@ -650,11 +682,14 @@ class _TransactionDetailSheet extends StatelessWidget {
                                     );
 
                               if (success && dialogContext.mounted) {
+                                // 사물함이 열렸다면 거래 완료 처리 (상태 변경 전에 체크)
+                                final wasOpening =
+                                    !isLockerOpen; // 열기 동작이었는지 확인
+
                                 setState(() => isLockerOpen = !isLockerOpen);
 
-                                // 사물함이 열렸다면 거래 완료 처리
-                                if (!isLockerOpen) {
-                                  // 이전 상태가 닫힘이었고 지금 열린 경우
+                                if (wasOpening) {
+                                  // 사물함을 열었다면 거래 완료 처리
                                   final transactionProvider = context
                                       .read<TransactionProvider>();
                                   final authProvider = context
@@ -970,8 +1005,31 @@ class _DetailRow extends StatelessWidget {
 }
 
 /// 등록된 책 목록 (거래 없음 + 사물함 미배정)
-class _RegisteredBooksList extends StatelessWidget {
+class _RegisteredBooksList extends StatefulWidget {
   const _RegisteredBooksList();
+
+  @override
+  State<_RegisteredBooksList> createState() => _RegisteredBooksListState();
+}
+
+class _RegisteredBooksListState extends State<_RegisteredBooksList> {
+  bool _hasLoadedOnce = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // 한 번만 로드하도록 플래그 사용
+    if (!_hasLoadedOnce) {
+      _hasLoadedOnce = true;
+      final authProvider = context.read<AuthProvider>();
+      final bookProvider = context.read<BookProvider>();
+
+      if (authProvider.currentUser != null) {
+        bookProvider.fetchMyBooks(authProvider.currentUser!.id);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -982,13 +1040,6 @@ class _RegisteredBooksList extends StatelessWidget {
     if (authProvider.currentUser == null) {
       return const Center(child: Text('로그인이 필요합니다.'));
     }
-
-    // 내 책 목록 로드
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (bookProvider.myBooks.isEmpty && !bookProvider.isLoading) {
-        bookProvider.fetchMyBooks(authProvider.currentUser!.id);
-      }
-    });
 
     // 로딩 중
     if (bookProvider.isLoading && bookProvider.myBooks.isEmpty) {
@@ -1570,6 +1621,38 @@ class _RegisteredBookCard extends StatelessWidget {
                     onPressed: isLoading
                         ? null
                         : () async {
+                            // 확인 다이얼로그 표시
+                            final confirmed = await showDialog<bool>(
+                              context: dialogContext,
+                              builder: (confirmContext) => AlertDialog(
+                                title: Text(isLockerOpen ? '사물함 닫기' : '사물함 열기'),
+                                content: Text(
+                                  isLockerOpen
+                                      ? '사물함을 정말 닫으시겠습니까?\n\n주의: 사물함을 닫을 경우 다시 열 수 없습니다.'
+                                      : '사물함을 정말 여시겠습니까?\n\n주의: 사물함을 열 경우 다시 닫을 수 없습니다.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(confirmContext).pop(false),
+                                    child: const Text('아니오'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.of(confirmContext).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isLockerOpen
+                                          ? AppColors.warning
+                                          : AppColors.success,
+                                    ),
+                                    child: const Text('예'),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirmed != true) return;
+
                             setState(() => isLoading = true);
 
                             try {
