@@ -780,7 +780,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // OCR 결과와 이미지를 등록 화면으로 전달
           if (mounted) {
-            final dataToPass = {...result, 'capturedImage': image};
+            // XFile을 Uint8List로 변환
+            final imageBytes = await image.readAsBytes();
+            final dataToPass = {...result, 'imageBytes': imageBytes};
             context.push('/register', extra: dataToPass);
           }
         } catch (e) {

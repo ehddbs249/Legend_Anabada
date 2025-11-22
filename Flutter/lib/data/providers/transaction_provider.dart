@@ -98,12 +98,6 @@ class TransactionProvider with ChangeNotifier {
           .eq('borrower_id', userId)
           .order('trans_date', ascending: false);
 
-      // DEBUG: 첫 번째 응답 출력
-      if (response.isNotEmpty) {
-        print('🔍 Transaction Response Sample:');
-        print(response.first);
-      }
-
       _myBorrowingTransactions = (response as List)
           .map((json) => Transaction.fromJson(json))
           .toList();
@@ -137,12 +131,6 @@ class TransactionProvider with ChangeNotifier {
           .or('user_id.eq.$userId,borrower_id.eq.$userId')
           .inFilter('trans_status', ['pending', 'active'])
           .order('trans_date', ascending: false);
-
-      // DEBUG: 첫 번째 응답 출력
-      if (response.isNotEmpty) {
-        print('🔍 Active Transaction Response Sample:');
-        print(response.first);
-      }
 
       _activeTransactions = (response as List)
           .map((json) => Transaction.fromJson(json))

@@ -118,25 +118,28 @@ class BookProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      // book_status가 active이고 거래가 없는 책만 최신순으로 10권 추천
+      // book_status가 available이고 거래가 없거나 cancelled인 책만 최신순으로 10권 추천
       final allBooks = await Supabase.instance.client
           .from('book')
           .select()
-          .eq('book_status', 'available') // active 상태인 책만
+          .eq('book_status', 'available') // 사물함 배정 완료된 책만
           .order('registered_at', ascending: false);
 
-      // book_transaction에 있는 모든 책 ID 조회
-      final allTransactions = await Supabase.instance.client
+      // book_transaction에서 active, pending, completed 상태인 거래의 책 ID 조회
+      final activeTransactions = await Supabase.instance.client
           .from('book_transaction')
-          .select('book_id');
+          .select('book_id')
+          .inFilter('trans_status', ['active', 'pending', 'completed']);
 
-      final bookIdsInTransaction = (allTransactions as List)
+      final bookIdsInActiveTransaction = (activeTransactions as List)
           .map((e) => e['book_id'] as String)
           .toSet();
 
-      // book_transaction에 없는 책만 필터링
+      // 진행 중인 거래가 없는 책만 필터링
       final response = (allBooks as List)
-          .where((book) => !bookIdsInTransaction.contains(book['book_id']))
+          .where(
+            (book) => !bookIdsInActiveTransaction.contains(book['book_id']),
+          )
           .take(10)
           .toList();
 
