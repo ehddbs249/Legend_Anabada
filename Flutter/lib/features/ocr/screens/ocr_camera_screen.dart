@@ -316,12 +316,17 @@ class _OcrCameraScreenState extends State<OcrCameraScreen>
 
     return Column(
       children: [
-        // 카메라 프리뷰 영역
+        // 카메라 프리뷰 영역 - aspect ratio 유지하면서 화면에 맞춤
         Expanded(
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.diagonal3Values(-1, 1, 1),
-            child: CameraPreview(_cameraController!),
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: _cameraController!.value.aspectRatio,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(-1, 1, 1), // 좌우반전
+                child: CameraPreview(_cameraController!),
+              ),
+            ),
           ),
         ),
 
