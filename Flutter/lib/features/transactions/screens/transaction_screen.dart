@@ -563,18 +563,9 @@ class _TransactionDetailSheet extends StatelessWidget {
     BuildContext context,
     Transaction transaction,
   ) async {
-    bool isLoading = true;
+    // 구매자 전용: 무조건 닫힘 상태로 시작 (닫기 → 열기)
+    bool isLoading = false;
     bool isLockerOpen = false;
-
-    // 현재 사물함 상태 조회
-    if (transaction.lockerNum != null) {
-      final lockerProvider = context.read<LockerProvider>();
-      final states = await lockerProvider.getPhysicalLockerStates();
-      if (states != null) {
-        isLockerOpen = states[transaction.lockerNum] ?? false;
-      }
-      isLoading = false;
-    }
 
     if (!context.mounted) return;
 
@@ -715,9 +706,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                                     Navigator.pop(dialogContext);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text(
-                                          '✅ 사물함이 열렸습니다! 거래가 완료되었습니다.',
-                                        ),
+                                        content: Text('거래가 완료되었습니다!'),
                                         backgroundColor: AppColors.success,
                                         duration: Duration(seconds: 3),
                                       ),
@@ -1539,17 +1528,9 @@ class _RegisteredBookCard extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    bool isLoading = true;
-    bool isLockerOpen = false;
-
-    // 현재 사물함 상태 조회
-    if (locker.lockerNum != null) {
-      final states = await lockerProvider.getPhysicalLockerStates();
-      if (states != null) {
-        isLockerOpen = states[locker.lockerNum] ?? false;
-      }
-      isLoading = false;
-    }
+    // 판매자 전용: 무조건 열림 상태로 시작 (열기 → 닫기)
+    bool isLoading = false;
+    bool isLockerOpen = true;
 
     if (!context.mounted) return;
 
@@ -1678,7 +1659,7 @@ class _RegisteredBookCard extends StatelessWidget {
                                     Navigator.pop(dialogContext);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('교재가 성공적으로 등록되었습니다!'),
+                                        content: Text('책이 등록되었습니다!'),
                                         backgroundColor: AppColors.success,
                                       ),
                                     );

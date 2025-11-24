@@ -30,9 +30,7 @@ class LockerService {
     try {
       final response = await _dio.get(
         '$_baseUrl/health',
-        options: Options(
-          receiveTimeout: _timeout,
-        ),
+        options: Options(receiveTimeout: _timeout),
       );
 
       return response.statusCode == 200;
@@ -52,7 +50,7 @@ class LockerService {
         '$_baseUrl/signal',
         data: {
           'survoNo': servoNo,
-          'status': true, // true = 열림 (90도)
+          'status': false, // false = 열림
         },
         options: Options(
           headers: {'Content-Type': 'application/json'},
@@ -92,7 +90,7 @@ class LockerService {
         '$_baseUrl/signal',
         data: {
           'survoNo': servoNo,
-          'status': false, // false = 닫힘 (0도)
+          'status': true, // true = 닫힘
         },
         options: Options(
           headers: {'Content-Type': 'application/json'},
@@ -154,9 +152,7 @@ class LockerService {
     try {
       final response = await _dio.get(
         _baseUrl,
-        options: Options(
-          receiveTimeout: _timeout,
-        ),
+        options: Options(receiveTimeout: _timeout),
       );
 
       if (response.statusCode == 200) {
